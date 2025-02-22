@@ -1,0 +1,3 @@
+pub const EI_MAX_CONTRIBUTIONS: f64 = 1077.48;
+pub const CPP_MAX_CONTRIBUTIONS: f64 = 3356.1;
+
