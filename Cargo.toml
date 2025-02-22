@@ -2,12 +2,13 @@
 name = "cdn-payroll"
 version = "0.1.0"
 edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "Canadian Payroll Library"
+homepage = "https://statbook.io"
+readme = "./README.md"
+repository = "https://github.com/MrCartaaa/cdn-payroll"
 
 [lib]
 path = "src/lib.rs"
-
-[[bin]]
-path = "src/main.rs"
-name = "cdn-payroll"
 
 [dependencies]
