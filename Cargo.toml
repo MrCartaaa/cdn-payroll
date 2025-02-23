@@ -8,7 +8,7 @@ homepage = "https://statbook.io"
 readme = "./README.md"
 repository = "https://github.com/MrCartaaa/cdn-payroll"
 authors = ["Carter Steele <office@statbook.io"]
-keywords = ["Canadian Payroll", "Payroll", "Tax"]
+keywords = ["Payroll-Tax", "Canadian-Payroll", "Payroll", "Tax"]
 
 [lib]
 path = "src/lib.rs"
