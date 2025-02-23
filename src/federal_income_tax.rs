@@ -4,45 +4,6 @@
 use crate::utils;
 use crate::year::v2025;
 
-/** Calculate Non-Commissionable Income Tax.
-*
-*
-* Given:
-*
-*   P: number of pay periods in the year.
-*
-*   I: Gross remuneration for the pay period.
-*
-*   This includes overtime earned and paid in the same pay period, pension income, qualified pension income, and taxable benefits, but does not include bonuses, retroactive pay increases, or other non-periodic payments
-*
-*   F: Payroll deductions for the pay period for employee contributions to a registered pension plan (RPP) for current and past services, a registered retirement savings plan (RRSP), to a pooled registered pension plan (PRPP), or a retirement compensation arrangement (RCA).
-*
-*   For tax deduction purposes, employers can deduct amounts contributed to an RPP, RRSP, PRPP, or RCA by or on behalf of an employee to determine the employee's taxable income
-*
-*   F2: Alimony or maintenance payments required by a legal document dated before May 1, 1997, to be payroll-deducted authorized by a tax services office or tax centre
-*
-*   F5A: Deductions for Canada (or Quebec) Pension Plan additional contributions for the pay period deducted from the periodic income
-*
-*   U1: Union dues for the pay period paid to a trade union, an association of public servants, or dues required under the law of a province to a parity or advisory committee or similar body
-*
-*   HD: Annual deduction for living in a prescribed zone, as shown on Form TD1
-*
-*   F1: Annual deductions such as child care expenses and support payments requested by an employee or pensioner and authorized by a tax services office or tax centre
-*
-*   T: Estimated federal and provincial or territorial tax deductions for the pay period
-*
-*   L: Additional tax deductions for the pay period requested by the employee or pensioner as shown on Form TD1
-*/
-#[allow(non_snake_case)]
-pub fn A(P: i64, I: f64, F: f64, F2: f64, F5A: f64, U1: f64, HD: f64, F1: f64, mut T: f64, L: f64) -> (f64, f64) {
-    let a: f64;
-    a = P as f64 * (I - F - F2 -F5A -U1) - HD - F1;
-    if a.is_sign_negative() {
-        T = L
-    }
-    (utils::round(a), T)
-}
-
 /** Calculate Annual Deductions.
 *
 * If F1 amount is implemented after the first pay period of the year, it must be calculated.
@@ -101,8 +62,12 @@ pub fn F5A(F5: f64, PI: f64, B: f64) -> f64 {
     utils::round(F5 * ((PI - B) / PI))
 }
 
-/** Annual basic federal tax
+/** Annual Basic Federal Tax
 *
+*   For cumulative T3 Calculations, use /[x/]_grad in the below list (if not listed, use the normal
+*   parameter).
+*
+*   R and K are based on 2025 index values for A see the Rates (R, V), income thresholds (A), and constants (K, KP) for each year
 *
 * Given:
 *
@@ -110,13 +75,17 @@ pub fn F5A(F5: f64, PI: f64, B: f64) -> f64 {
 *
 *   A: Annual taxable income
 *
+*   A_grad: Projected annual taxable income
+*
 *   K: Federal constant. The constant is the tax overcharged when applying the 20.5%, 26%, 29%, and 33% rates to the annual taxable income A
 *
 *   K1: Federal non-refundable personal tax credit (the lowest federal tax rate is used to calculate this credit)
 *
 *   K2: Base Canada Pension Plan contributions and employment insurance premiums federal tax credits for the year (the lowest federal tax rate is used to calculate this credit).
 *
-*      Replace K2 with K2R where: employees that are transferred from Quebec to a location outside Quebec
+*   K2_grad: see K2.
+*
+*   Replace K2 with K2R where: employees that are transferred from Quebec to a location outside Quebec
 *
 *   K3: Other federal non-refundable tax credits (such as medical expenses and charitable donations) authorized by a tax services office or tax centre
 *
@@ -177,7 +146,53 @@ pub fn K2(P: i64, PM: i64, C: f64, mut EI: f64) -> f64 {
 
 /** Base Canada Pension Plan contributions and employment insurance premiums federal tax credits for the year
 *
-*       Calculated using the year-to-date method
+*   Using Cumulative Average Calculation
+*
+* Given:
+*
+*   S1: Annualizing factor
+*
+*   PE: Pensionable earnings for the pay period, or the gross income plus any taxable benefits for the pay period, plus PEYTD
+*
+*   B1: Gross bonuses, retroactive pay increases, vacation pay when vacation is not taken, accumulated overtime payments or other non-periodic payments year-to-date (before the pay period)
+*
+*   C: Canada (or Quebec) Pension Plan contributions for the pay period
+*
+*   EI: Insurable earnings for the pay period, including insurable taxable benefits for the pay period, plus IEYTD
+*/
+#[allow(non_snake_case)]
+pub fn K2_grad(S1: f64, PE: i64, B1: f64, EI: f64) -> f64 {
+    let mut cpp: f64;
+
+    cpp = (S1 * PE as f64) + B1 - 3500.0;
+    if cpp.is_sign_negative() {
+        cpp = 0.0;
+    }
+
+    if cpp > v2025::CPP_MAX_CONTRIBUTIONS {
+        cpp = v2025::CPP_MAX_CONTRIBUTIONS;
+    }
+
+    let mut result: f64;
+
+    result = 0.15 * 0.0495 * cpp;
+
+    let mut ei: f64;
+
+    ei = (S1 * EI) + B1;
+
+    if ei > v2025::EI_MAX_CONTRIBUTIONS {
+        ei = v2025::EI_MAX_CONTRIBUTIONS;
+    }
+
+    result += 0.15 * 0.0164 * ei;
+
+    utils::round(result)
+}
+
+/** Base Canada Pension Plan contributions and employment insurance premiums federal tax credits for the year
+*
+*   Calculated using the year-to-date method
 *
 *
 * Given:
@@ -263,11 +278,48 @@ pub fn K4(A: f64, CEA: f64) -> f64 {
 *   P: The number of pay periods in the year
 *
 *   LCF: Federal labour-sponsored funds tax credit
+*
+*   is_outside_city_limits: outside Canada and in Canada beyond the limits of any province or territory
 */
 #[allow(non_snake_case)]
-pub fn T1(T3: f64, P: i64, LCF: f64) -> f64 {
+pub fn T1(T3: f64, P: i64, LCF: f64, is_outside_city_limits: bool) -> f64 {
     let t1: f64;
-    t1 = T3 - (P as f64 * LCF);
+    
+    if is_outside_city_limits {
+        t1 = T3 + (0.48 * T3) - (P as f64 * LCF);
+    } else {
+        t1 = T3 - (P as f64 * LCF);
+    }
+
+    if t1.is_sign_negative() {
+        return 0.0;
+    }
+    utils::round(t1)
+}
+
+/** Annual federal tax deduction
+*
+*   Uses Cumulative Average calculation
+*
+*
+* Given:
+*
+*   T3: Annual basic federal tax
+*
+*   LCF: Federal labour-sponsored funds tax credit
+*
+*   is_outside_city_limits: outside Canada and in Canada beyond the limits of any province or territory
+*/
+#[allow(non_snake_case)]
+pub fn T1_grad(T3: f64, LCF: f64, is_outside_city_limits: bool) -> f64 {
+    let t1: f64;
+
+    if is_outside_city_limits {
+        t1 = T3 + (0.48 * T3) - LCF;
+    } else {
+        t1 = T3 - LCF;
+    }
+
     if t1.is_sign_negative() {
         return 0.0;
     }

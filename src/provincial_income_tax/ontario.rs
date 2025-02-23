@@ -1,5 +1,7 @@
 //! Ontario Provincial Income Tax
 
+use crate::utils;
+
 /** Provincial surtax calculated on the basic provincial tax (only applies to Ontario)
 *
 *
@@ -19,7 +21,7 @@ pub fn V1(T4: f64) -> f64 {
     } else
     // if T4 > 7307.0
     {
-        return 0.2 * (T4 - 5710.0) + 0.36 * (T4 - 7307.0);
+        return utils::round(0.2 * (T4 - 5710.0) + 0.36 * (T4 - 7307.0));
     }
 }
 
@@ -40,7 +42,7 @@ pub fn V2(A: f64) -> f64 {
     if A > 20000.0 && A < 36000.0 {
         v2 = 0.06 * (A - 20000.0);
         if v2 < 300.0 {
-                return v2;
+                return utils::round(v2);
             } else {
                 return 300.0;
             }
@@ -49,7 +51,7 @@ pub fn V2(A: f64) -> f64 {
     if A > 36000.0 && A < 48000.0 {
         v2 = 300.0 + (0.06 * (A - 36000.0));
         if v2 < 450.0 {
-            return v2;
+            return utils::round(v2);
         } else {
             return 450.0;
         }
@@ -58,7 +60,7 @@ pub fn V2(A: f64) -> f64 {
     if A > 48000.0 && A < 72000.0 {
         v2 = 600.0 + (0.25 * (A - 72000.0));
         if v2 < 750.0 {
-            return v2;
+            return utils::round(v2);
         } else {
             return 750.0;
         }
@@ -67,7 +69,7 @@ pub fn V2(A: f64) -> f64 {
     if A > 72000.0 && A < 200000.0 {
         v2 = 600.0 + (0.25 * (A - 72000.0));
         if v2 < 900.0 {
-            return v2;
+            return utils::round(v2);
         } else {
             return 900.0;
         }
@@ -76,7 +78,7 @@ pub fn V2(A: f64) -> f64 {
     {
         v2 = 750.0 + (0.25 * (A - 200000.0));
         if v2 < 900.0 {
-            return v2;
+            return utils::round(v2);
         }
         else {
             return 900.0;
@@ -112,7 +114,7 @@ pub fn S(T4: f64, V1: f64, Y: i64) -> f64 {
         if s2 < 0.0 {
             return 0.0;
         }
-        return s2;
+        return utils::round(s2);
     }
 }
 

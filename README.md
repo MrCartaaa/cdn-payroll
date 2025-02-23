@@ -8,7 +8,7 @@ Based on the [Payroll Deductions Formulas, 120th Edition](https://www.canada.ca/
 - There is no implementation for provincial taxes other than Ontario
 - Cumulative deductions calculations are not defined
 - calculations for CPP and EI are not implemented
-- There is incomplete implementation for taxes on commissionable earnings
+- There is incomplete implementation for taxes on commissionable and non-periodic payment earnings
 - certain values are hard coded into the function as I have yet to find out where their origin is; otherwise, they are defined as constants, by year
 - unit testing incomplete
 - the crate is not mature enough for integration tests, but this will be implemented during that phase
