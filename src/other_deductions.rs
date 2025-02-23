@@ -49,7 +49,7 @@ pub fn C(PM: i64, D: f64, PI: f64, P: i64) -> f64 {
 pub fn C2(PM: i64, D2: f64, PI_YTD: f64, PI: f64, W: f64) -> f64 {
     let c21: f64 = 396.0 * (PM/12) as f64 - D2;
     let c22: f64 = (PI_YTD + PI - W) * 0.04;
-    let c2 mut: f64;
+    let mut c2: f64;
     if c21 < c22 {
         c2 = c21;
     } else {
