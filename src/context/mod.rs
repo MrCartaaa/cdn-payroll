@@ -8,27 +8,23 @@ pub const INCOME_THRESHOLD_5: f64 = 253414.0;
 pub const MINIMUM_BASIC_AMT: f64 = 16129.0;
 pub const MAXIMUM_BASIC_AMT: f64 = 14538.0;
 
-mod cpp_contribution_rates_and_amounts;
-mod income_threshold_and_constants;
-mod base_cpp_rates_and_amounts;
-mod first_additional_cpp_rates_and_amounts;
-mod second_additional_cpp_rates_and_amounts;
-mod ei_rates_and_amounts;
-mod federal_claim_codes;
-mod provincial_claim_codes;
-mod other_rates_and_amounts;
+pub mod canada_pension_plan;
+pub mod income_threshold_and_constants;
+pub mod ei_rates_and_amounts;
+pub mod other_rates_and_amounts;
+pub mod claim_codes;
 
 use std::error::Error;
 
-pub use income_threshold_and_constants::*;
-pub use cpp_contribution_rates_and_amounts::*;
-pub use base_cpp_rates_and_amounts::*;
-pub use first_additional_cpp_rates_and_amounts::*;
-pub use second_additional_cpp_rates_and_amounts::*;
-pub use ei_rates_and_amounts::*;
-pub use federal_claim_codes::*;
-pub use provincial_claim_codes::*;
-pub use other_rates_and_amounts::*;
+use income_threshold_and_constants::*;
+use canada_pension_plan::cpp_contribution_rates_and_amounts::*;
+use canada_pension_plan::base_cpp_rates_and_amounts::*;
+use canada_pension_plan::first_additional_cpp_rates_and_amounts::*;
+use canada_pension_plan::second_additional_cpp_rates_and_amounts::*;
+use ei_rates_and_amounts::*;
+use claim_codes::federal_claim_codes::*;
+use claim_codes::provincial_claim_codes::*;
+use other_rates_and_amounts::*;
 
 /** Context: used to Initialize Constants by Year.
 *
@@ -39,6 +35,7 @@ pub use other_rates_and_amounts::*;
  pub struct Context {
     pub version: Version,
     pub ITC: IncomeThresholdAndConstants,
+    pub ORA: OtherRatesAndAmounts,
     pub CC: CCCtx,
     pub CPP: CPPCtx,
     pub EIContRate: EmploymentInsuranceRatesAndAmounts,
@@ -51,6 +48,7 @@ pub use other_rates_and_amounts::*;
     #[allow(non_snake_case)]
      pub fn new(version: Version) -> Result<Self, Box< dyn Error>> {
         let ITC = IncomeThresholdAndConstants::init(&version)?;
+        let ORA = OtherRatesAndAmounts::init(&version)?;
 
         let FCC = FederalClaimCodes::init(&version)?;
         let ONCC = ProvincialClaimCodes::init_on(&version)?;
@@ -65,6 +63,7 @@ pub use other_rates_and_amounts::*;
         Ok(Self {
             version,
             ITC,
+            ORA,
             CPP: CPPCtx {
                 CPPContRate,
                 BaseCPPRate,

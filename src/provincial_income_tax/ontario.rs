@@ -1,27 +1,50 @@
 //! Ontario Provincial Income Tax
 
 use crate::utils;
+use crate::context::Context;
 
-/** Provincial surtax calculated on the basic provincial tax (only applies to Ontario)
+/** # Provincial surtax calculated on the basic provincial tax (only applies to Ontario)
 *
 *
-* Given:
+* ## Arguements:
 *
 *   T4: Annual basic provincial or territorial tax
+*
+* ## Examples:
+*
+* ```
+* use cdn_payroll::context::{Context, Version};
+* use cdn_payroll::provincial_income_tax::ontario::V1;
+*
+* let ctx = Context::new(Version::V2025_1).unwrap();
+* let t4 = 5400.0;
+* let v1 = V1(ctx, &t4);
+* assert_eq!(v1, Ok(0.0));
+* ```
 */
 #[allow(non_snake_case)]
-pub fn V1(T4: f64) -> f64 {
-    // TODO: these fixed numbers have to be extracted from the csv file 'thrrtsmnts-01-25e.csv'
-    if T4 <= 5710.0 {
-        return 0.0;
+pub fn V1(ctx: Context, T4: &f64) -> Result<f64, &'static str> {
+    let ctx_ora_on = &ctx.ORA.ON;
+
+    let t4atv1 = &ctx_ora_on.T4atV1.as_ref().ok_or_else(|| "unable to locate V1 at T4[x].")?;
+    let v1 = &ctx_ora_on.V1Rate.as_ref().ok_or_else(|| "unable to locate V1 Rates for T4.")?;
+
+    let t4atv1_1 = t4atv1.get(1).ok_or_else(|| "unable to locate V1 at T4[x] (level 1).")?;
+    let v1_1 = v1.get(1).ok_or_else(|| "unable to locate V1 Rates for T4 (level 1).")?;
+
+    let t4atv1_2 = t4atv1.get(2).ok_or_else(|| "unable to locate V1 at T4[x] (level 2).")?;
+    let v1_2 = v1.get(2).ok_or_else(|| "unable to locate V1 Rate (level 2) for T4.")?;
+
+    if T4 <= t4atv1_1 {
+        return Ok(0.0);
     } else
 
-    if T4 > 5710.0 && T4 < 7307.0 {
-        return 0.2 * (T4 - 5710.0);
+    if T4 > t4atv1_1 && T4 < t4atv1_2 {
+        return Ok(utils::round(v1_1 * (T4 - t4atv1_1)));
     } else
-    // if T4 > 7307.0
+    // if T4 > t4atv1_2
     {
-        return utils::round(0.2 * (T4 - 5710.0) + 0.36 * (T4 - 7307.0));
+        return Ok(utils::round(v1_1 * (T4 - t4atv1_1) + (v1_2 * (T4 - t4atv1_2))));
     }
 }
 

@@ -292,11 +292,11 @@ fn basic_amt<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Option<BasicA
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[allow(non_snake_case)]
 pub enum BasicAmount {
-    pub BasicAmt(f64),
-    pub Federal,
-    pub MB,
-    pub NS,
-    pub YT,
+    BasicAmt(f64),
+    Federal,
+    MB,
+    NS,
+    YT,
 }
 
 #[cfg(test)]
@@ -305,7 +305,13 @@ mod tests {
 
     #[test]
     fn test_init_other_rates_and_amounts() {
-        let otr = OtherRatesAndAmounts::init(&Version::V2025_1);
-        assert!(otr.is_ok());
+        let result = OtherRatesAndAmounts::init(&Version::V2025_1);
+        assert!(&result.is_ok());
+
+        let otr = result.unwrap();
+        assert_eq!(&otr.Federal.BasicAmt, &Some(BasicAmount::Federal));
+        assert!(&otr.ON.T4atV1.unwrap().contains(&5710.0));
+        assert_eq!(&otr.QC.LCPAmt, &None);
+        assert_eq!(&otr.AB.IRate, &Some(0.02));
     }
 }

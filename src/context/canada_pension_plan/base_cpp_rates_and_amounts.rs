@@ -4,7 +4,7 @@ use std::error::Error as StdError;
 use serde::{Serialize, Deserialize, Deserializer, de};
 use csv::{ReaderBuilder, Error as CSVError};
 use serde_json::Value;
-use super::Version;
+use crate::context::Version;
 
 /** Base Canada Pension Plan / Quebec Pension Plan Rates and Amounts for Quebec and Non-Quebec
 * Individuals
