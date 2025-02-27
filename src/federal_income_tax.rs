@@ -2,7 +2,7 @@
 //!
 
 use crate::utils;
-use crate::year::v2025;
+use crate::context;
 
 /** Calculate Annual Deductions.
 *
@@ -128,15 +128,15 @@ pub fn K1(TC: f64) -> f64 {
 #[allow(non_snake_case)]
 pub fn K2(P: i64, PM: i64, C: f64, mut EI: f64) -> f64 {
 
-    if EI > v2025::EI_MAX_CONTRIBUTIONS {
-        EI = v2025::EI_MAX_CONTRIBUTIONS;
+    if EI > context::EI_MAX_CONTRIBUTIONS {
+        EI = context::EI_MAX_CONTRIBUTIONS;
     }
 
     let mut result = 0.15 * (P as f64 * C * (0.0495 / 0.0595));
     //TODO: check if the `result` is anywhere near CPP_MAX_CONTRIBUTIONS; not sure if I've writen
     //this correctly
-    if result > v2025::CPP_MAX_CONTRIBUTIONS {
-        result = v2025::CPP_MAX_CONTRIBUTIONS;
+    if result > context::CPP_MAX_CONTRIBUTIONS {
+        result = context::CPP_MAX_CONTRIBUTIONS;
     }
 
     result = (result * (PM/12) as f64) + (0.15 * (P as f64 * EI));
@@ -169,8 +169,8 @@ pub fn K2_grad(S1: f64, PE: i64, B1: f64, EI: f64) -> f64 {
         cpp = 0.0;
     }
 
-    if cpp > v2025::CPP_MAX_CONTRIBUTIONS {
-        cpp = v2025::CPP_MAX_CONTRIBUTIONS;
+    if cpp > context::CPP_MAX_CONTRIBUTIONS {
+        cpp = context::CPP_MAX_CONTRIBUTIONS;
     }
 
     let mut result: f64;
@@ -181,8 +181,8 @@ pub fn K2_grad(S1: f64, PE: i64, B1: f64, EI: f64) -> f64 {
 
     ei = (S1 * EI) + B1;
 
-    if ei > v2025::EI_MAX_CONTRIBUTIONS {
-        ei = v2025::EI_MAX_CONTRIBUTIONS;
+    if ei > context::EI_MAX_CONTRIBUTIONS {
+        ei = context::EI_MAX_CONTRIBUTIONS;
     }
 
     result += 0.15 * 0.0164 * ei;
@@ -212,7 +212,7 @@ pub fn K2_grad(S1: f64, PE: i64, B1: f64, EI: f64) -> f64 {
 #[allow(non_snake_case)]
 pub fn K2_YTD(PM: i64, PR: i64, C: f64, D: f64, D1: f64, EI: f64) -> f64 {
     let mut result: f64 = 0.15;
-    let cpp_ftc1: f64 = v2025::CPP_MAX_CONTRIBUTIONS * (PM/12) as f64;
+    let cpp_ftc1: f64 = context::CPP_MAX_CONTRIBUTIONS * (PM/12) as f64;
     let cpp_ftc2: f64 = (D * (0.0495/0.0595)) + (PR as f64 * C * (0.0495/0.0595));
     if cpp_ftc1 > cpp_ftc2 {
         result *= cpp_ftc2
@@ -222,8 +222,8 @@ pub fn K2_YTD(PM: i64, PR: i64, C: f64, D: f64, D1: f64, EI: f64) -> f64 {
 
     let ei_ftc: f64;
     let y: f64 = D1 + (PR as f64 * EI);
-    if y > v2025::EI_MAX_CONTRIBUTIONS {
-        ei_ftc = v2025::EI_MAX_CONTRIBUTIONS;
+    if y > context::EI_MAX_CONTRIBUTIONS {
+        ei_ftc = context::EI_MAX_CONTRIBUTIONS;
     } else {
         ei_ftc = y;
     }

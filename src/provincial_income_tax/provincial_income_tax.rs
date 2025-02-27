@@ -1,7 +1,7 @@
 //! Annual Basic Provincial or Territorial Tax
 
 use crate::utils;
-use crate::year::v2025;
+use crate::context;
 
 /** Annual basic provincial or territorial tax
 *
@@ -97,14 +97,14 @@ pub fn K2P(lowest_provincial_tax_rate: f64, P: i64, PM: i64, C: f64, EI: f64) ->
     let mut k2p: f64;
 
     let mut cpp: f64 = P as f64 * C * (0.0495/0.0595);
-    if cpp > v2025::CPP_MAX_CONTRIBUTIONS {
-        cpp = v2025::CPP_MAX_CONTRIBUTIONS;
+    if cpp > context::CPP_MAX_CONTRIBUTIONS {
+        cpp = context::CPP_MAX_CONTRIBUTIONS;
     }
     k2p = lowest_provincial_tax_rate * (cpp * (PM/12) as f64);
 
     let mut ei: f64 = P as f64 * EI;
-    if ei > v2025::EI_MAX_CONTRIBUTIONS {
-        ei = v2025::EI_MAX_CONTRIBUTIONS;
+    if ei > context::EI_MAX_CONTRIBUTIONS {
+        ei = context::EI_MAX_CONTRIBUTIONS;
     }
     k2p += lowest_provincial_tax_rate * ei;
 
@@ -137,15 +137,15 @@ pub fn K2P_grad(lowest_provincial_tax_rate: f64, PE: i64, S1: f64, B1: f64, EI: 
     if cpp.is_sign_negative() {
         cpp = 0.0;
     }
-    if cpp > v2025::CPP_MAX_CONTRIBUTIONS {
-        cpp = v2025::CPP_MAX_CONTRIBUTIONS;
+    if cpp > context::CPP_MAX_CONTRIBUTIONS {
+        cpp = context::CPP_MAX_CONTRIBUTIONS;
     }
 
     k2p = lowest_provincial_tax_rate * 0.0495 * cpp;
 
     let mut ei: f64 = (S1 * EI) + B1;
-    if ei > v2025::EI_MAX_CONTRIBUTIONS {
-        ei = v2025::EI_MAX_CONTRIBUTIONS;
+    if ei > context::EI_MAX_CONTRIBUTIONS {
+        ei = context::EI_MAX_CONTRIBUTIONS;
     }
     k2p += lowest_provincial_tax_rate * 0.0164 * ei;
 

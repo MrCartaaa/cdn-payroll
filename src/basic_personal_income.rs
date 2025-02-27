@@ -3,7 +3,8 @@
 //! It's important to note that the BPA is adjusted annually due to inflation and government policy.
 
 use crate::utils;
-use crate::year::v2025;
+use crate::context::Context;
+use crate::context;
 
 /** Calculate Federal Basic Personal Amount.
 *
@@ -21,25 +22,26 @@ use crate::year::v2025;
 *   NI = A + HD
 */
 #[allow(non_snake_case)]
-pub fn BPAF(A: f64, HD: f64) -> Result<f64, f64> {
-    let mut BPAF: f64 = 0.0;
+pub fn BPAF(ctx: Context, A: f64, HD: f64) -> f64 {
+    let BPAF: f64;
     let NI = A+HD;
 
-    if NI <= v2025::INCOME_THRESHOLD_4 {
-        BPAF = v2025::MINIMUM_BASIC_AMT;
+    let income_threshold_4 = ctx.ITC.Federal.A.fourth.unwrap();
+    let income_threshold_5 = ctx.ITC.Federal.A.fifth.unwrap();
+
+    if NI <= income_threshold_4 {
+        BPAF = context::MINIMUM_BASIC_AMT;
     } else
-    if v2025::INCOME_THRESHOLD_4 < NI && NI < v2025::INCOME_THRESHOLD_5 {
-        BPAF = v2025::MINIMUM_BASIC_AMT - (NI*-v2025::INCOME_THRESHOLD_4) * (1591.0 / 75532.0);
+    if income_threshold_4 < NI && NI < income_threshold_5 {
+        BPAF = context::MINIMUM_BASIC_AMT - (NI*-income_threshold_5) * (1591.0 / 75532.0);
     } else
-    if NI > v2025::INCOME_THRESHOLD_5 {
-        BPAF = v2025::MAXIMUM_BASIC_AMT;
+    // if NI > income_threshold_5
+    {
+        BPAF = context::MAXIMUM_BASIC_AMT;
     }
 
-    if BPAF == 0.0 {
-        return Err(0.0)
-    }
 
-    Ok(utils::round(BPAF))
+    utils::round(BPAF)
 }
 
 /** Calculate Non-Commissionable Income Tax.
@@ -135,19 +137,24 @@ pub fn S1(total_pay_periods: i64, current_pay_period: i64) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::context::Version;
 
     #[test]
     #[allow(non_snake_case)]
     fn test_BPAF_minimum_amt() {
-        let result = BPAF(10000.0, 0.0);
-        assert_eq!(result.unwrap(), v2025::MINIMUM_BASIC_AMT);
+        let ctx = Context::new(Version::V2025_1);
+        assert!(ctx.is_ok());
+        let result = BPAF(ctx.unwrap(), 10000.0, 0.0);
+        assert_eq!(result, context::MINIMUM_BASIC_AMT);
     }
 
     #[test]
     #[allow(non_snake_case)]
     fn test_BPAF_maximum_amt() {
-        let result = BPAF(253414.01, 0.0);
-        assert_eq!(result.unwrap(), v2025::MAXIMUM_BASIC_AMT);
+        let ctx = Context::new(Version::V2025_1);
+        assert!(ctx.is_ok());
+        let result = BPAF(ctx.unwrap(), 253414.01, 0.0);
+        assert_eq!(result, context::MAXIMUM_BASIC_AMT);
     }
 
 }

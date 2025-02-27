@@ -1,7 +1,7 @@
 //! Canadian Pension Plan and Employee Insurance Deductions
 
 use crate::utils;
-use crate::year::v2025;
+use crate::context;
 
 //
 // Canada Pension Plan Calculations:
@@ -98,7 +98,7 @@ pub fn W(PI_YTD: f64, YMPE: f64, PM: i64) -> f64 {
 */
 #[allow(non_snake_case)]
 pub fn EI(D1: f64, IE: f64) -> f64 {
-    let ei1: f64 = v2025::EI_MAX_CONTRIBUTIONS - D1;
+    let ei1: f64 = context::EI_MAX_CONTRIBUTIONS - D1;
     let ei2: f64 = 0.0164 * IE;
     if ei1 < ei2 {
         return utils::round(ei1);
