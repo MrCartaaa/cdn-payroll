@@ -8,7 +8,9 @@ use crate::context::Context;
 *
 * ### Arguements:
 *
-*   T4: Annual basic provincial or territorial tax
+*   [ctx](../../context/struct.Context.html): Context
+*
+*   [T4](../provincial_income_tax/fn.T4.html): Annual basic provincial or territorial tax
 *
 * ### Example:
 *
@@ -62,7 +64,9 @@ pub fn V1(ctx: &Context, T4: &f64) -> Result<f64, &'static str> {
 *
 * ### Arguements:
 *
-*   A: Annual taxable income
+*   [ctx](../../context/struct.Context.html): Context
+*
+*   [A](../../basic_personal_income/fn.A.html): Annual taxable income
 *
 * ### Example:
 *
@@ -138,11 +142,13 @@ pub fn V2(ctx: &Context, A: &f64) -> Result<f64, & 'static str> {
 *
 * ### Arguements:
 *
-*   T4: Annual basic provincial or territorial tax
+*   [ctx](../../context/struct.Context.html): Context
 *
-*   V1: Provincial surtax calculated on the basic provincial tax (only applies to Ontario)
+*   [T4](../provincial_income_tax/fn.T4.html): Annual basic provincial or territorial tax
 *
-*   Y: Additional provincial tax reduction amount based on the number of eligible dependents used in the calculation of Factor S (only applies to Ontario)
+*   [V1](fn.V1.html): Provincial surtax calculated on the basic provincial tax (only applies to Ontario)
+*
+*   [Y](fn.Y.html): Additional provincial tax reduction amount based on the number of eligible dependents used in the calculation of Factor S (only applies to Ontario)
 *
 * ### Example:
 * ```
