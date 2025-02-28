@@ -66,7 +66,7 @@ impl OtherRatesAndAmounts {
                 records.push(rec.clone());
         }
 
-        if records.len() != 17 {
+        if records.len() != 20 {
             return Err("Datafile corrrupt. Expected 17 rows.".into());
         }
  
@@ -96,6 +96,9 @@ impl OtherRatesAndAmounts {
         let mut last_fed_prov_row: usize = 9999;
         let mut last_t4atv1: Vec<Option<Vec<f64>>> = Vec::new();
         let mut last_v1rate: Vec<Option<Vec<f64>>> = Vec::new();
+        let mut last_aatv2: Vec<Option<Vec<f64>>> = Vec::new();
+        let mut last_v2rate: Vec<Option<Vec<f64>>> = Vec::new();
+        let mut last_v2max: Vec<Option<Vec<f64>>> = Vec::new();
         let mut is_dirty: bool = false;
 
         for (i, rec) in records.clone().iter().enumerate() {
@@ -111,22 +114,30 @@ impl OtherRatesAndAmounts {
                     S2: records[last_fed_prov_row].S2.clone(),
                     T4atV1: Self::handle_nested_option_f64(last_t4atv1.clone()),
                     V1Rate: Self::handle_nested_option_f64(last_v1rate.clone()),
+                    AatV2: Self::handle_nested_option_f64(last_aatv2.clone()),
+                    V2Rate: Self::handle_nested_option_f64(last_v2rate.clone()),
+                    V2Max: Self::handle_nested_option_f64(last_v2max.clone()),
                     Abat: records[last_fed_prov_row].Abat.clone(),
                     Surtax: records[last_fed_prov_row].Surtax.clone(),
                 };
                 last_fed_prov_row = 9999;
                 last_t4atv1 = Vec::new();
                 last_v1rate = Vec::new();
+                last_aatv2 = Vec::new();
+                last_v2rate = Vec::new();
+                last_v2max = Vec::new();
                 is_dirty = false;
             }
  
+            last_t4atv1.push(rec.T4atV1.clone());
+            last_v1rate.push(rec.V1Rate.clone());
+            last_aatv2.push(rec.AatV2.clone());
+            last_v2rate.push(rec.V2Rate.clone());
+            last_v2max.push(rec.V2Max.clone());
+
             if !rec.fed_prov.is_empty() {
                 last_fed_prov_row = i;
-                last_t4atv1.push(rec.T4atV1.clone());
-                last_v1rate.push(rec.V1Rate.clone());
             } else {
-                last_t4atv1.push(rec.T4atV1.clone());
-                last_v1rate.push(rec.V1Rate.clone());
                 is_dirty = true;
             }
         }
@@ -169,6 +180,12 @@ impl OtherRatesAndAmounts {
 *
 *   V1Rate: V1 Rate
 *
+*   AatV2: A to V2
+*
+*   V2Rate: V2 Rate
+*
+*   V2Max: V2 Maximum
+*
 *   Abat: Abatement
 *
 *   Surtax: Surtax
@@ -193,6 +210,12 @@ pub struct ORA {
     pub T4atV1: Option<Vec<f64>>,
     #[serde(deserialize_with="quoted_vec_f64", rename="V1 rate")]
     pub V1Rate: Option<Vec<f64>>,
+    #[serde(deserialize_with="quoted_vec_f64", rename="A to V2")]
+    pub AatV2: Option<Vec<f64>>,
+    #[serde(deserialize_with="quoted_vec_f64", rename="V2 rate")]
+    pub V2Rate: Option<Vec<f64>>,
+    #[serde(deserialize_with="quoted_vec_f64", rename="V2 Maximum")]
+    pub V2Max: Option<Vec<f64>>,
     #[serde(deserialize_with="quoted_f64", rename="Abatement")]
     pub Abat: Option<f64>,
     #[serde(deserialize_with="quoted_f64", rename="Surtax")]
@@ -307,11 +330,13 @@ mod tests {
     fn test_init_other_rates_and_amounts() {
         let result = OtherRatesAndAmounts::init(&Version::V2025_1);
         assert!(&result.is_ok());
-
         let otr = result.unwrap();
         assert_eq!(&otr.Federal.BasicAmt, &Some(BasicAmount::Federal));
         assert!(&otr.ON.T4atV1.unwrap().contains(&5710.0));
         assert_eq!(&otr.QC.LCPAmt, &None);
         assert_eq!(&otr.AB.IRate, &Some(0.02));
+        assert!(&otr.ON.AatV2.unwrap().contains(&200000.0));
+        assert!(&otr.ON.V2Rate.unwrap().contains(&0.25));
+        assert!(&otr.ON.V2Max.unwrap().contains(&450.0));
     }
 }
