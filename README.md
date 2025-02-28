@@ -1,6 +1,6 @@
 # Canadian Payroll Crate
 
-Based on the [Payroll Deductions Formulas, 120th Edition](https://www.canada.ca/en/revenue-agency/services/forms-publications/payroll/t4127-payroll-deductions-formulas/t4127-jan.html)
+Based on the [Payroll Deductions Formulas, 120th Edition](https://www.canada.ca/en/revenue-agency/services/forms-publications/payroll/t4127-payroll-deductions-formulas/t4127-jan/t4127-jan-payroll-deductions-formulas-computer-programs.html)
 
 --- 
 
