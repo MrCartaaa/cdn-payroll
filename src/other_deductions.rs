@@ -1,12 +1,11 @@
 //! Canadian Pension Plan and Employee Insurance Deductions
 
-use crate::utils;
 use crate::context;
+use crate::utils;
 
 //
 // Canada Pension Plan Calculations:
 //
-
 
 /** Canada (or Quebec) Pension Plan contributions for the pay period (Non-Commissionable Earnings)
 *
@@ -22,7 +21,7 @@ use crate::context;
 */
 #[allow(non_snake_case)]
 pub fn C(PM: i64, D: f64, PI: f64, P: i64) -> f64 {
-    let c1: f64 = 4034.1 * (PM/12) as f64 - D;
+    let c1: f64 = 4034.1 * (PM / 12) as f64 - D;
     let c2: f64 = 0.0595 * (PI - (3500.0 / P as f64));
     if c1 < c2 {
         return utils::round(c2);
@@ -47,7 +46,7 @@ pub fn C(PM: i64, D: f64, PI: f64, P: i64) -> f64 {
 */
 #[allow(non_snake_case)]
 pub fn C2(PM: i64, D2: f64, PI_YTD: f64, PI: f64, W: f64) -> f64 {
-    let c21: f64 = 396.0 * (PM/12) as f64 - D2;
+    let c21: f64 = 396.0 * (PM / 12) as f64 - D2;
     let c22: f64 = (PI_YTD + PI - W) * 0.04;
     let mut c2: f64;
     if c21 < c22 {
@@ -74,7 +73,7 @@ pub fn C2(PM: i64, D2: f64, PI_YTD: f64, PI: f64, W: f64) -> f64 {
 */
 #[allow(non_snake_case)]
 pub fn W(PI_YTD: f64, YMPE: f64, PM: i64) -> f64 {
-    let w1: f64 = YMPE * (PM/12) as f64;
+    let w1: f64 = YMPE * (PM / 12) as f64;
 
     if w1 > PI_YTD {
         return utils::round(w1);
@@ -82,11 +81,9 @@ pub fn W(PI_YTD: f64, YMPE: f64, PM: i64) -> f64 {
     PI_YTD
 }
 
-
 //
 // Employee Insurance Calculations:
 //
-
 
 /** Employment insurance premiums for the pay period
 *
@@ -106,4 +103,3 @@ pub fn EI(D1: f64, IE: f64) -> f64 {
         return utils::round(ei2);
     }
 }
-

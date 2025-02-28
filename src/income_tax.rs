@@ -62,4 +62,3 @@ pub fn T_grad(T1_grad: f64, T2: f64, M1: f64, S1: f64, M: f64, L: f64) -> f64 {
 
     utils::round(t + L)
 }
-

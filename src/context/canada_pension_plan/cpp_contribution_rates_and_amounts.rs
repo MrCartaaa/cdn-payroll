@@ -1,10 +1,10 @@
 //! Canada Pension Plan / Quebec Pension Plan Contribution Rates and Amounts as defined by the CRA.
 
-use std::error::Error as StdError;
-use serde::{Serialize, Deserialize, Deserializer, de};
-use csv::{ReaderBuilder, Error as CSVError};
-use serde_json::Value;
 use crate::context::Version;
+use csv::{Error as CSVError, ReaderBuilder};
+use serde::{de, Deserialize, Deserializer, Serialize};
+use serde_json::Value;
+use std::error::Error as StdError;
 
 /** Canada Pension Plan / Quebec Pension Plan Contribution Rates and Amounts for Quebec and
 * Non-Quebec Individuals
@@ -23,13 +23,13 @@ pub struct CanadaPensionPlanContributionRatesAndAmounts {
 }
 
 impl CanadaPensionPlanContributionRatesAndAmounts {
-
     /** Initialize Canada Pension Plan / Quebec Pension Plan Contribution Rates and Amounts.
-    */
-    pub fn init(version: &Version) -> Result<CanadaPensionPlanContributionRatesAndAmounts, Box<dyn StdError>> {
-
+     */
+    pub fn init(
+        version: &Version,
+    ) -> Result<CanadaPensionPlanContributionRatesAndAmounts, Box<dyn StdError>> {
         let file_name = match version {
-            Version::V2025_1 => {"cra-constants/v2025_1/cpp-qpp-ttl-01-25e.csv"}
+            Version::V2025_1 => "cra-constants/v2025_1/cpp-qpp-ttl-01-25e.csv",
         };
 
         let rdr = ReaderBuilder::new().from_path(file_name)?;
@@ -45,17 +45,18 @@ impl CanadaPensionPlanContributionRatesAndAmounts {
         if records.len() != 2 {
             return Err("Datafile Corrupt. expected 2 rows from {file_name}".into());
         }
- 
+
         #[allow(non_snake_case)]
         if let Some(QC) = records.iter().position(|rec| rec.pp == "QPP (QC)") {
             #[allow(non_snake_case)]
-            if let Some (CA) = records.iter().position(|rec| rec.pp == "CPP (Canada except QC)") {
-                return Ok(
-                    CanadaPensionPlanContributionRatesAndAmounts{
-                        QC: records.get(QC).unwrap().clone(),
-                        CA: records.get(CA).unwrap().clone(),
-                    }
-                )
+            if let Some(CA) = records
+                .iter()
+                .position(|rec| rec.pp == "CPP (Canada except QC)")
+            {
+                return Ok(CanadaPensionPlanContributionRatesAndAmounts {
+                    QC: records.get(QC).unwrap().clone(),
+                    CA: records.get(CA).unwrap().clone(),
+                });
             }
         }
         Err("Datafile Corrupt, expected values in columns from {file_name}.".into())
@@ -82,19 +83,31 @@ impl CanadaPensionPlanContributionRatesAndAmounts {
 #[allow(non_camel_case_types)]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CPP_CRA {
-    #[serde(rename="CPP/QPP")]
+    #[serde(rename = "CPP/QPP")]
     pp: String,
-    #[serde(deserialize_with="quoted_f64", rename="Year's Maximum Pensionable Earnings (YMPE)")]
+    #[serde(
+        deserialize_with = "quoted_f64",
+        rename = "Year's Maximum Pensionable Earnings (YMPE)"
+    )]
     pub YMPE: f64,
-    #[serde(deserialize_with="quoted_f64", rename="Basic Exception")]
+    #[serde(deserialize_with = "quoted_f64", rename = "Basic Exception")]
     pub BasicException: f64,
-    #[serde(deserialize_with="quoted_f64", rename="Year's Maximum Contributory Earnings")]
+    #[serde(
+        deserialize_with = "quoted_f64",
+        rename = "Year's Maximum Contributory Earnings"
+    )]
     pub YMCE: f64,
-    #[serde(deserialize_with="quoted_f64", rename="Base Employee and Employer Contribution Rate")]
+    #[serde(
+        deserialize_with = "quoted_f64",
+        rename = "Base Employee and Employer Contribution Rate"
+    )]
     pub EE_ER_TtlContRate: f64,
-    #[serde(deserialize_with="quoted_f64", rename="Maximum Base Employee and Employer Contribution*")]
+    #[serde(
+        deserialize_with = "quoted_f64",
+        rename = "Maximum Base Employee and Employer Contribution*"
+    )]
     pub MaxEE_ER_TtlCont: f64,
-    #[serde(deserialize_with="quoted_f64", rename="YMPE Before Rounding")]
+    #[serde(deserialize_with = "quoted_f64", rename = "YMPE Before Rounding")]
     pub YMPE_raw: f64,
 }
 
@@ -109,9 +122,13 @@ fn quoted_f64<'de, D: Deserializer<'de>>(deserializer: D) -> Result<f64, D::Erro
             if val.is_ok() {
                 return Ok(val.unwrap());
             } else {
-                return Err(de::Error::custom(format!("{}, Val: {:?}", val.unwrap_err(), v)));
+                return Err(de::Error::custom(format!(
+                    "{}, Val: {:?}",
+                    val.unwrap_err(),
+                    v
+                )));
             }
-                            },
+        }
         Value::Number(num) => num.as_f64().ok_or(de::Error::custom("Invalid number"))?,
         _ => return Err(de::Error::custom("Wrong type, expected quoted f64.")),
     })
@@ -120,7 +137,6 @@ fn quoted_f64<'de, D: Deserializer<'de>>(deserializer: D) -> Result<f64, D::Erro
 #[cfg(test)]
 mod tests {
     use super::*;
-    
 
     #[test]
     fn test_init_cpp_const_rates() {
@@ -130,7 +146,5 @@ mod tests {
         let cppcr = result.unwrap();
         assert_eq!(cppcr.CA.MaxEE_ER_TtlCont, 4034.1);
         assert_eq!(cppcr.QC.YMPE, 71300.0);
-
     }
 }
-

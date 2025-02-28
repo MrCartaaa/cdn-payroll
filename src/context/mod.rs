@@ -9,44 +9,43 @@ pub const MINIMUM_BASIC_AMT: f64 = 16129.0;
 pub const MAXIMUM_BASIC_AMT: f64 = 14538.0;
 
 pub mod canada_pension_plan;
-pub mod income_threshold_and_constants;
-pub mod ei_rates_and_amounts;
-pub mod other_rates_and_amounts;
 pub mod claim_codes;
+pub mod ei_rates_and_amounts;
+pub mod income_threshold_and_constants;
+pub mod other_rates_and_amounts;
 
 use std::error::Error;
 
-use income_threshold_and_constants::*;
-use canada_pension_plan::cpp_contribution_rates_and_amounts::*;
 use canada_pension_plan::base_cpp_rates_and_amounts::*;
+use canada_pension_plan::cpp_contribution_rates_and_amounts::*;
 use canada_pension_plan::first_additional_cpp_rates_and_amounts::*;
 use canada_pension_plan::second_additional_cpp_rates_and_amounts::*;
-use ei_rates_and_amounts::*;
 use claim_codes::federal_claim_codes::*;
 use claim_codes::provincial_claim_codes::*;
+use ei_rates_and_amounts::*;
+use income_threshold_and_constants::*;
 use other_rates_and_amounts::*;
 
 /** Context: used to Initialize Constants by Year.
 *
 * CSV files are pulled directly from the [CRA website](https://www.canada.ca/en/revenue-agency/services/forms-publications/payroll/t4127-payroll-deductions-formulas.html) and represented here.
-*/ 
+*/
 #[derive(Debug)]
 #[allow(non_snake_case)]
- pub struct Context {
+pub struct Context {
     pub version: Version,
     pub ITC: IncomeThresholdAndConstants,
     pub ORA: OtherRatesAndAmounts,
     pub CC: CCCtx,
     pub CPP: CPPCtx,
     pub EIContRate: EmploymentInsuranceRatesAndAmounts,
- }
+}
 
- impl Context {
-
+impl Context {
     /** Create New Context.
-    */
+     */
     #[allow(non_snake_case)]
-     pub fn new(version: Version) -> Result<Self, Box< dyn Error>> {
+    pub fn new(version: Version) -> Result<Self, Box<dyn Error>> {
         let ITC = IncomeThresholdAndConstants::init(&version)?;
         let ORA = OtherRatesAndAmounts::init(&version)?;
 
@@ -69,15 +68,15 @@ use other_rates_and_amounts::*;
                 BaseCPPRate,
                 CPPFAddntlRate,
                 CPPSAddntlRate,
-                },
+            },
             CC: CCCtx {
                 Federal: FCC.CC,
                 ON: ONCC.CC,
             },
             EIContRate,
-         })
-     }
- }
+        })
+    }
+}
 
 /// Context for CPP Constants
 #[derive(Debug)]
@@ -102,6 +101,5 @@ pub struct CCCtx {
 /// This directs Context to read the correct CRA files
 #[derive(Debug)]
 pub enum Version {
-    V2025_1
+    V2025_1,
 }
-

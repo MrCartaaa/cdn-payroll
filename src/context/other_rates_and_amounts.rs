@@ -1,16 +1,15 @@
 //! Other Rates and Amounts as defined by the CRA
 
+use encoding_rs::UTF_8;
 use std::collections::BTreeSet;
 use std::fs::File;
-use encoding_rs::UTF_8;
 
-use encoding_rs_io::DecodeReaderBytesBuilder;
-use std::error::Error as StdError;
-use serde::{Serialize, Deserialize, Deserializer, de};
-use csv::{ReaderBuilder, StringRecord};
-use serde_json::Value;
 use super::Version;
-
+use csv::{ReaderBuilder, StringRecord};
+use encoding_rs_io::DecodeReaderBytesBuilder;
+use serde::{de, Deserialize, Deserializer, Serialize};
+use serde_json::Value;
+use std::error::Error as StdError;
 
 /// Other Federal, Provincial and Outside of Canada Rates and Amounts
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
@@ -34,18 +33,21 @@ pub struct OtherRatesAndAmounts {
 }
 
 impl OtherRatesAndAmounts {
-
     /// Initialize Other Rates and Amounts
     pub fn init(version: &Version) -> Result<OtherRatesAndAmounts, Box<dyn StdError>> {
         let file_name = match version {
-            Version::V2025_1 => {"cra-constants/v2025_1/thrrtsmnts-01-25e.csv"}
+            Version::V2025_1 => "cra-constants/v2025_1/thrrtsmnts-01-25e.csv",
         };
 
         let file = File::open(file_name)?;
-        let trscd = DecodeReaderBytesBuilder::new().encoding(Some(UTF_8)).build(file);
+        let trscd = DecodeReaderBytesBuilder::new()
+            .encoding(Some(UTF_8))
+            .build(file);
 
-
-        let mut rdr = ReaderBuilder::new().flexible(true).quoting(true).from_reader(trscd);
+        let mut rdr = ReaderBuilder::new()
+            .flexible(true)
+            .quoting(true)
+            .from_reader(trscd);
 
         let headers = rdr.headers()?.clone();
         let mut new_headers = vec!["fed_prov"];
@@ -56,43 +58,131 @@ impl OtherRatesAndAmounts {
             }
         }
 
-
         rdr.set_headers(StringRecord::from(new_headers));
 
         let mut records: Vec<ORA> = Vec::new();
 
         for result in rdr.deserialize() {
             let rec: ORA = result?;
-                records.push(rec.clone());
+            records.push(rec.clone());
         }
 
         if records.len() != 20 {
             return Err("Datafile corrrupt. Expected 17 rows.".into());
         }
- 
+
         let handled_records = Self::handle_multiaxis(records);
 
         Ok(OtherRatesAndAmounts {
-            Federal: handled_records.iter().filter(|otr| otr.fed_prov == "Federal").collect::<Vec<&ORA>>().pop().unwrap().clone(),
-            AB: handled_records.iter().filter(|otr| otr.fed_prov == "AB").collect::<Vec<&ORA>>().pop().unwrap().clone(),
-            BC: handled_records.iter().filter(|otr| otr.fed_prov == "BC").collect::<Vec<&ORA>>().pop().unwrap().clone(),
-            MB: handled_records.iter().filter(|otr| otr.fed_prov == "MB").collect::<Vec<&ORA>>().pop().unwrap().clone(),
-            NB: handled_records.iter().filter(|otr| otr.fed_prov == "NB").collect::<Vec<&ORA>>().pop().unwrap().clone(),
-            NL: handled_records.iter().filter(|otr| otr.fed_prov == "NL").collect::<Vec<&ORA>>().pop().unwrap().clone(),
-            NS: handled_records.iter().filter(|otr| otr.fed_prov == "NS").collect::<Vec<&ORA>>().pop().unwrap().clone(),
-            NT: handled_records.iter().filter(|otr| otr.fed_prov == "NT").collect::<Vec<&ORA>>().pop().unwrap().clone(),
-            NU: handled_records.iter().filter(|otr| otr.fed_prov == "NU").collect::<Vec<&ORA>>().pop().unwrap().clone(),
-            ON: handled_records.iter().filter(|otr| otr.fed_prov == "ON").collect::<Vec<&ORA>>().pop().unwrap().clone(),
-            PE: handled_records.iter().filter(|otr| otr.fed_prov == "PE").collect::<Vec<&ORA>>().pop().unwrap().clone(),
-            QC: handled_records.iter().filter(|otr| otr.fed_prov == "QC").collect::<Vec<&ORA>>().pop().unwrap().clone(),
-            SK: handled_records.iter().filter(|otr| otr.fed_prov == "SK").collect::<Vec<&ORA>>().pop().unwrap().clone(),
-            YT: handled_records.iter().filter(|otr| otr.fed_prov == "YT").collect::<Vec<&ORA>>().pop().unwrap().clone(),
-            notCA: handled_records.iter().filter(|otr| otr.fed_prov == "Outside Canada").collect::<Vec<&ORA>>().pop().unwrap().clone(),
+            Federal: handled_records
+                .iter()
+                .filter(|otr| otr.fed_prov == "Federal")
+                .collect::<Vec<&ORA>>()
+                .pop()
+                .unwrap()
+                .clone(),
+            AB: handled_records
+                .iter()
+                .filter(|otr| otr.fed_prov == "AB")
+                .collect::<Vec<&ORA>>()
+                .pop()
+                .unwrap()
+                .clone(),
+            BC: handled_records
+                .iter()
+                .filter(|otr| otr.fed_prov == "BC")
+                .collect::<Vec<&ORA>>()
+                .pop()
+                .unwrap()
+                .clone(),
+            MB: handled_records
+                .iter()
+                .filter(|otr| otr.fed_prov == "MB")
+                .collect::<Vec<&ORA>>()
+                .pop()
+                .unwrap()
+                .clone(),
+            NB: handled_records
+                .iter()
+                .filter(|otr| otr.fed_prov == "NB")
+                .collect::<Vec<&ORA>>()
+                .pop()
+                .unwrap()
+                .clone(),
+            NL: handled_records
+                .iter()
+                .filter(|otr| otr.fed_prov == "NL")
+                .collect::<Vec<&ORA>>()
+                .pop()
+                .unwrap()
+                .clone(),
+            NS: handled_records
+                .iter()
+                .filter(|otr| otr.fed_prov == "NS")
+                .collect::<Vec<&ORA>>()
+                .pop()
+                .unwrap()
+                .clone(),
+            NT: handled_records
+                .iter()
+                .filter(|otr| otr.fed_prov == "NT")
+                .collect::<Vec<&ORA>>()
+                .pop()
+                .unwrap()
+                .clone(),
+            NU: handled_records
+                .iter()
+                .filter(|otr| otr.fed_prov == "NU")
+                .collect::<Vec<&ORA>>()
+                .pop()
+                .unwrap()
+                .clone(),
+            ON: handled_records
+                .iter()
+                .filter(|otr| otr.fed_prov == "ON")
+                .collect::<Vec<&ORA>>()
+                .pop()
+                .unwrap()
+                .clone(),
+            PE: handled_records
+                .iter()
+                .filter(|otr| otr.fed_prov == "PE")
+                .collect::<Vec<&ORA>>()
+                .pop()
+                .unwrap()
+                .clone(),
+            QC: handled_records
+                .iter()
+                .filter(|otr| otr.fed_prov == "QC")
+                .collect::<Vec<&ORA>>()
+                .pop()
+                .unwrap()
+                .clone(),
+            SK: handled_records
+                .iter()
+                .filter(|otr| otr.fed_prov == "SK")
+                .collect::<Vec<&ORA>>()
+                .pop()
+                .unwrap()
+                .clone(),
+            YT: handled_records
+                .iter()
+                .filter(|otr| otr.fed_prov == "YT")
+                .collect::<Vec<&ORA>>()
+                .pop()
+                .unwrap()
+                .clone(),
+            notCA: handled_records
+                .iter()
+                .filter(|otr| otr.fed_prov == "Outside Canada")
+                .collect::<Vec<&ORA>>()
+                .pop()
+                .unwrap()
+                .clone(),
         })
     }
 
     fn handle_multiaxis(mut records: Vec<ORA>) -> Vec<ORA> {
-
         let mut last_fed_prov_row: usize = 9999;
         let mut last_t4atv1: Vec<Option<Vec<f64>>> = Vec::new();
         let mut last_v1rate: Vec<Option<Vec<f64>>> = Vec::new();
@@ -102,7 +192,6 @@ impl OtherRatesAndAmounts {
         let mut is_dirty: bool = false;
 
         for (i, rec) in records.clone().iter().enumerate() {
-
             if !rec.fed_prov.is_empty() && is_dirty {
                 records[last_fed_prov_row] = ORA {
                     fed_prov: records[last_fed_prov_row].fed_prov.clone(),
@@ -128,7 +217,7 @@ impl OtherRatesAndAmounts {
                 last_v2max = Vec::new();
                 is_dirty = false;
             }
- 
+
             last_t4atv1.push(rec.T4atV1.clone());
             last_v1rate.push(rec.V1Rate.clone());
             last_aatv2.push(rec.AatV2.clone());
@@ -194,31 +283,31 @@ impl OtherRatesAndAmounts {
 #[allow(non_snake_case)]
 pub struct ORA {
     fed_prov: String,
-    #[serde(deserialize_with="basic_amt", rename="Basic amount")]
+    #[serde(deserialize_with = "basic_amt", rename = "Basic amount")]
     pub BasicAmt: Option<BasicAmount>,
-    #[serde(deserialize_with="quoted_f64", rename="Index rate")]
+    #[serde(deserialize_with = "quoted_f64", rename = "Index rate")]
     pub IRate: Option<f64>,
-    #[serde(deserialize_with="quoted_f64", rename="LCP rate")]
+    #[serde(deserialize_with = "quoted_f64", rename = "LCP rate")]
     pub LCPRate: Option<f64>,
-    #[serde(deserialize_with="quoted_f64", rename="LCP amount")]
+    #[serde(deserialize_with = "quoted_f64", rename = "LCP amount")]
     pub LCPAmt: Option<f64>,
-    #[serde(deserialize_with="quoted_f64")]
+    #[serde(deserialize_with = "quoted_f64")]
     pub CEA: Option<f64>,
-    #[serde(deserialize_with="quoted_f64")]
+    #[serde(deserialize_with = "quoted_f64")]
     pub S2: Option<f64>,
-    #[serde(deserialize_with="quoted_vec_f64", rename="T4 to V1")]
+    #[serde(deserialize_with = "quoted_vec_f64", rename = "T4 to V1")]
     pub T4atV1: Option<Vec<f64>>,
-    #[serde(deserialize_with="quoted_vec_f64", rename="V1 rate")]
+    #[serde(deserialize_with = "quoted_vec_f64", rename = "V1 rate")]
     pub V1Rate: Option<Vec<f64>>,
-    #[serde(deserialize_with="quoted_vec_f64", rename="A to V2")]
+    #[serde(deserialize_with = "quoted_vec_f64", rename = "A to V2")]
     pub AatV2: Option<Vec<f64>>,
-    #[serde(deserialize_with="quoted_vec_f64", rename="V2 rate")]
+    #[serde(deserialize_with = "quoted_vec_f64", rename = "V2 rate")]
     pub V2Rate: Option<Vec<f64>>,
-    #[serde(deserialize_with="quoted_vec_f64", rename="V2 Maximum")]
+    #[serde(deserialize_with = "quoted_vec_f64", rename = "V2 Maximum")]
     pub V2Max: Option<Vec<f64>>,
-    #[serde(deserialize_with="quoted_f64", rename="Abatement")]
+    #[serde(deserialize_with = "quoted_f64", rename = "Abatement")]
     pub Abat: Option<f64>,
-    #[serde(deserialize_with="quoted_f64", rename="Surtax")]
+    #[serde(deserialize_with = "quoted_f64", rename = "Surtax")]
     pub Surtax: Option<f64>,
 }
 fn quoted_f64<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Option<f64>, D::Error> {
@@ -234,14 +323,14 @@ fn quoted_f64<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Option<f64>,
             } else {
                 return Ok(None);
             }
-        },
-        Value::Number(n) => {
-            n.as_f64()
         }
+        Value::Number(n) => n.as_f64(),
         _ => return Err(de::Error::custom("Wrong type, expected quoted f64.")),
     })
 }
-fn quoted_vec_f64<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Option<Vec<f64>>, D::Error> {
+fn quoted_vec_f64<'de, D: Deserializer<'de>>(
+    deserializer: D,
+) -> Result<Option<Vec<f64>>, D::Error> {
     #[allow(unreachable_code)]
     Ok(match Deserialize::deserialize(deserializer)? {
         Value::Number(n) => {
@@ -249,8 +338,8 @@ fn quoted_vec_f64<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Option<V
             if v.is_some() {
                 return Ok(Some(vec![v.unwrap()]));
             };
-             return Err(de::Error::custom("Wrong type, expected quoted f64."));
-        },
+            return Err(de::Error::custom("Wrong type, expected quoted f64."));
+        }
         Value::String(s) => {
             let v = s.trim().replace(",", "").replace("-", "");
             if v.is_empty() {
@@ -262,7 +351,7 @@ fn quoted_vec_f64<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Option<V
             } else {
                 return Ok(None);
             };
-        },
+        }
         _ => return Err(de::Error::custom("Wrong type, expected quoted f64.")),
     })
 }
@@ -292,22 +381,24 @@ fn basic_amt<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Option<BasicA
                         if bytes_tree.iter().all(|i| bytes_target.contains(i)) {
                             return Ok(None);
                         }
-                        return Err(de::Error::custom(format!("incorrect BPA string provided: {:?}.", v)));
+                        return Err(de::Error::custom(format!(
+                            "incorrect BPA string provided: {:?}.",
+                            v
+                        )));
                     }
                 }
             }
-        },
+        }
         Value::Number(n) => {
             let v = n.as_f64();
             if v.is_some() {
                 return Ok(Some(BasicAmount::BasicAmt(v.unwrap())));
             }
-             return Err(de::Error::custom("Wrong type, expected quoted f64."))
-        },
+            return Err(de::Error::custom("Wrong type, expected quoted f64."));
+        }
         _ => return Err(de::Error::custom("Wrong type, expected quoted f64.")),
     })
 }
-
 
 /// Basic Amount
 ///

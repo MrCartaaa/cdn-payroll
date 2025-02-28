@@ -1,7 +1,7 @@
 //! Annual Basic Provincial or Territorial Tax
 
-use crate::utils;
 use crate::context;
+use crate::utils;
 
 /** Annual basic provincial or territorial tax
 *
@@ -62,7 +62,7 @@ pub fn T2(T4: f64, V1: f64, V2: f64, S: f64, P: i64, LCP: f64) -> f64 {
 }
 
 /** Provincial or territorial non-refundable personal tax credit
-*    (the lowest tax rate of the province or territory is used to calculate this credit) 
+*    (the lowest tax rate of the province or territory is used to calculate this credit)
 *
 *
 * Given:
@@ -96,11 +96,11 @@ pub fn K1P(lowest_provincial_tax_rate: f64, TCP: f64) -> f64 {
 pub fn K2P(lowest_provincial_tax_rate: f64, P: i64, PM: i64, C: f64, EI: f64) -> f64 {
     let mut k2p: f64;
 
-    let mut cpp: f64 = P as f64 * C * (0.0495/0.0595);
+    let mut cpp: f64 = P as f64 * C * (0.0495 / 0.0595);
     if cpp > context::CPP_MAX_CONTRIBUTIONS {
         cpp = context::CPP_MAX_CONTRIBUTIONS;
     }
-    k2p = lowest_provincial_tax_rate * (cpp * (PM/12) as f64);
+    k2p = lowest_provincial_tax_rate * (cpp * (PM / 12) as f64);
 
     let mut ei: f64 = P as f64 * EI;
     if ei > context::EI_MAX_CONTRIBUTIONS {
@@ -151,4 +151,3 @@ pub fn K2P_grad(lowest_provincial_tax_rate: f64, PE: i64, S1: f64, B1: f64, EI: 
 
     utils::round(k2p)
 }
-

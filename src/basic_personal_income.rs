@@ -1,10 +1,10 @@
 //! # Basic Personal Amount Calculation
-//! The Basic Personal Amount (BPA) is a non-refundable tax credit that all individuals can claim in Canada. It provides a full reduction from federal income tax for individuals with taxable income below the BPA and a partial reduction for those with taxable income above it. 
+//! The Basic Personal Amount (BPA) is a non-refundable tax credit that all individuals can claim in Canada. It provides a full reduction from federal income tax for individuals with taxable income below the BPA and a partial reduction for those with taxable income above it.
 //! It's important to note that the BPA is adjusted annually due to inflation and government policy.
 
-use crate::utils;
-use crate::context::Context;
 use crate::context;
+use crate::context::Context;
+use crate::utils;
 
 /** Calculate Federal Basic Personal Amount.
 *
@@ -24,22 +24,20 @@ use crate::context;
 #[allow(non_snake_case)]
 pub fn BPAF(ctx: Context, A: f64, HD: f64) -> f64 {
     let BPAF: f64;
-    let NI = A+HD;
+    let NI = A + HD;
 
     let income_threshold_4 = ctx.ITC.Federal.A.fourth.unwrap();
     let income_threshold_5 = ctx.ITC.Federal.A.fifth.unwrap();
 
     if NI <= income_threshold_4 {
         BPAF = context::MINIMUM_BASIC_AMT;
-    } else
-    if income_threshold_4 < NI && NI < income_threshold_5 {
-        BPAF = context::MINIMUM_BASIC_AMT - (NI*-income_threshold_5) * (1591.0 / 75532.0);
+    } else if income_threshold_4 < NI && NI < income_threshold_5 {
+        BPAF = context::MINIMUM_BASIC_AMT - (NI * -income_threshold_5) * (1591.0 / 75532.0);
     } else
     // if NI > income_threshold_5
     {
         BPAF = context::MAXIMUM_BASIC_AMT;
     }
-
 
     utils::round(BPAF)
 }
@@ -74,9 +72,20 @@ pub fn BPAF(ctx: Context, A: f64, HD: f64) -> f64 {
 *   L: Additional tax deductions for the pay period requested by the employee or pensioner as shown on Form TD1
 */
 #[allow(non_snake_case)]
-pub fn A(P: i64, I: f64, F: f64, F2: f64, F5A: f64, U1: f64, HD: f64, F1: f64, mut T: f64, L: f64) -> (f64, f64) {
+pub fn A(
+    P: i64,
+    I: f64,
+    F: f64,
+    F2: f64,
+    F5A: f64,
+    U1: f64,
+    HD: f64,
+    F1: f64,
+    mut T: f64,
+    L: f64,
+) -> (f64, f64) {
     let a: f64;
-    a = P as f64 * (I - F - F2 -F5A -U1) - HD - F1;
+    a = P as f64 * (I - F - F2 - F5A - U1) - HD - F1;
     if a.is_sign_negative() {
         T = L
     }
@@ -114,7 +123,19 @@ pub fn A(P: i64, I: f64, F: f64, F2: f64, F5A: f64, U1: f64, HD: f64, F1: f64, m
 *  HD: Annual deduction for living in a prescribed zone, as shown on Form TD1
 */
 #[allow(non_snake_case)]
-pub fn A_grad(S1: f64, I: f64, F: f64, F1: f64, F2: f64, F4: f64, F5A: f64, F5B: f64, U1: f64, B1: f64, HD: f64) -> f64 {
+pub fn A_grad(
+    S1: f64,
+    I: f64,
+    F: f64,
+    F1: f64,
+    F2: f64,
+    F4: f64,
+    F5A: f64,
+    F5B: f64,
+    U1: f64,
+    B1: f64,
+    HD: f64,
+) -> f64 {
     let a: f64 = (S1 * (I - F - F2 - F5A - U1)) + (B1 - F4 - F5B) - HD - F1;
     if a.is_sign_negative() {
         return 0.0;
@@ -156,6 +177,4 @@ mod tests {
         let result = BPAF(ctx.unwrap(), 253414.01, 0.0);
         assert_eq!(result, context::MAXIMUM_BASIC_AMT);
     }
-
 }
-

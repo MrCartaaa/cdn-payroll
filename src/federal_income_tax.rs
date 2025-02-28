@@ -1,8 +1,8 @@
 //! # Income Tax Calculations.
 //!
 
-use crate::utils;
 use crate::context;
+use crate::utils;
 
 /** Calculate Annual Deductions.
 *
@@ -37,12 +37,10 @@ pub fn F1(P: i64, PR: i64, F1: f64) -> f64 {
 #[allow(non_snake_case)]
 pub fn F5(C: f64, C2: f64) -> f64 {
     if C == 0.0 && C2 == 0.0 {
-        return 0.0
+        return 0.0;
     }
-    utils::round(C * (0.100/0.0595) + C2)
+    utils::round(C * (0.100 / 0.0595) + C2)
 }
-
-
 
 /** Deductions for Canada (or Quebec) Pension Plan additional contributions for the pay period deducted from the periodic income
 *
@@ -127,7 +125,6 @@ pub fn K1(TC: f64) -> f64 {
 */
 #[allow(non_snake_case)]
 pub fn K2(P: i64, PM: i64, C: f64, mut EI: f64) -> f64 {
-
     if EI > context::EI_MAX_CONTRIBUTIONS {
         EI = context::EI_MAX_CONTRIBUTIONS;
     }
@@ -139,7 +136,7 @@ pub fn K2(P: i64, PM: i64, C: f64, mut EI: f64) -> f64 {
         result = context::CPP_MAX_CONTRIBUTIONS;
     }
 
-    result = (result * (PM/12) as f64) + (0.15 * (P as f64 * EI));
+    result = (result * (PM / 12) as f64) + (0.15 * (P as f64 * EI));
 
     utils::round(result)
 }
@@ -212,8 +209,8 @@ pub fn K2_grad(S1: f64, PE: i64, B1: f64, EI: f64) -> f64 {
 #[allow(non_snake_case)]
 pub fn K2_YTD(PM: i64, PR: i64, C: f64, D: f64, D1: f64, EI: f64) -> f64 {
     let mut result: f64 = 0.15;
-    let cpp_ftc1: f64 = context::CPP_MAX_CONTRIBUTIONS * (PM/12) as f64;
-    let cpp_ftc2: f64 = (D * (0.0495/0.0595)) + (PR as f64 * C * (0.0495/0.0595));
+    let cpp_ftc1: f64 = context::CPP_MAX_CONTRIBUTIONS * (PM / 12) as f64;
+    let cpp_ftc2: f64 = (D * (0.0495 / 0.0595)) + (PR as f64 * C * (0.0495 / 0.0595));
     if cpp_ftc1 > cpp_ftc2 {
         result *= cpp_ftc2
     } else {
@@ -284,7 +281,7 @@ pub fn K4(A: f64, CEA: f64) -> f64 {
 #[allow(non_snake_case)]
 pub fn T1(T3: f64, P: i64, LCF: f64, is_outside_city_limits: bool) -> f64 {
     let t1: f64;
-    
+
     if is_outside_city_limits {
         t1 = T3 + (0.48 * T3) - (P as f64 * LCF);
     } else {
@@ -342,4 +339,3 @@ pub fn LCF(acquisition_pay_loss: f64) -> f64 {
         return 750.0;
     }
 }
-

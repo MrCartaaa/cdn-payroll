@@ -1,8 +1,8 @@
 //! Rates (R, V), Income Thresholds (A), and Constants (K, KP).
 
-use csv::{ReaderBuilder, StringRecordsIter, StringRecord};
-use std::error::Error;
 use super::Version;
+use csv::{ReaderBuilder, StringRecord, StringRecordsIter};
+use std::error::Error;
 
 /// Federal and Provincial Rates (R, V), Income Thresholds (A), and Constants(K, P)
 #[derive(Debug)]
@@ -24,15 +24,18 @@ pub struct IncomeThresholdAndConstants {
 }
 
 impl IncomeThresholdAndConstants {
-
     /** Initialize Rates, Income Thresholds and Constants.
-    */
+     */
     pub fn init(version: &Version) -> Result<IncomeThresholdAndConstants, Box<dyn Error>> {
         let file_name = match version {
-            Version::V2025_1 => {"cra-constants/v2025_1/rtsncmtrshldcnstnt-01-25e.csv"}
+            Version::V2025_1 => "cra-constants/v2025_1/rtsncmtrshldcnstnt-01-25e.csv",
         };
 
-        let mut rdr = ReaderBuilder::new().has_headers(false).flexible(true).quoting(true).from_path(file_name)?;
+        let mut rdr = ReaderBuilder::new()
+            .has_headers(false)
+            .flexible(true)
+            .quoting(true)
+            .from_path(file_name)?;
         let mut iter = rdr.records();
 
         // not using headers, skip;
@@ -51,7 +54,7 @@ impl IncomeThresholdAndConstants {
         let itc_pe = Self::get_itcp_item(&mut iter);
         let itc_sk = Self::get_itcp_item(&mut iter);
         let itc_yt = Self::get_itcp_item(&mut iter);
-        
+
         Ok(Self {
             Federal: itcf,
             AB: itc_ab,
@@ -70,7 +73,8 @@ impl IncomeThresholdAndConstants {
     }
 
     fn get_itcf_item<R>(iter: &mut StringRecordsIter<R>) -> ITFedConst
-        where R: std::io::Read
+    where
+        R: std::io::Read,
     {
         ITFedConst::new(
             Self::get_itc_row(iter.next().unwrap().unwrap()),
@@ -80,7 +84,8 @@ impl IncomeThresholdAndConstants {
     }
 
     fn get_itcp_item<R>(iter: &mut StringRecordsIter<R>) -> ProvITCRB
-        where R: std::io::Read
+    where
+        R: std::io::Read,
     {
         ProvITCRB::new(
             Self::get_itc_row(iter.next().unwrap().unwrap()),
@@ -106,13 +111,13 @@ impl IncomeThresholdAndConstants {
         match col {
             Some(col) => {
                 let v = col.trim().replace(",", "");
-                    if v.is_empty() {
+                if v.is_empty() {
                     return None;
                 } else {
-                return Some(v.parse::<f64>().unwrap())
+                    return Some(v.parse::<f64>().unwrap());
                 }
-            },
-            None => {None}
+            }
+            None => None,
         }
     }
 }
@@ -131,7 +136,16 @@ pub struct ITBracket {
 }
 
 impl ITBracket {
-    fn new(first: Option<f64>, second: Option<f64>, third: Option<f64>, fourth: Option<f64>, fifth: Option<f64>, sixth: Option<f64>, seventh: Option<f64>, eighth: Option<f64>) -> Self {
+    fn new(
+        first: Option<f64>,
+        second: Option<f64>,
+        third: Option<f64>,
+        fourth: Option<f64>,
+        fifth: Option<f64>,
+        sixth: Option<f64>,
+        seventh: Option<f64>,
+        eighth: Option<f64>,
+    ) -> Self {
         Self {
             first,
             second,
@@ -164,14 +178,9 @@ pub struct ProvITCRB {
 }
 
 impl ProvITCRB {
-
     #[allow(non_snake_case)]
     fn new(A: ITBracket, V: ITBracket, KP: ITBracket) -> Self {
-        Self {
-            A,
-            V,
-            KP,
-        }
+        Self { A, V, KP }
     }
 }
 
@@ -194,17 +203,11 @@ pub struct ITFedConst {
 }
 
 impl ITFedConst {
-
     #[allow(non_snake_case)]
     fn new(A: ITBracket, V: ITBracket, K: ITBracket) -> Self {
-        Self {
-            A,
-            V,
-            K,
-        }
+        Self { A, V, K }
     }
 }
-
 
 #[cfg(test)]
 mod test {
