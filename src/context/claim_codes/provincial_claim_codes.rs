@@ -1,6 +1,6 @@
 //! Ontario Claim Codes (using maimum BPAF) as defined by the CRA.
 
-use crate::context::{Version, ProvinceKey};
+use crate::context::{ProvinceKey, Version};
 use csv::ReaderBuilder;
 use serde::{de, Deserialize, Deserializer, Serialize};
 use serde_json::Value;
@@ -53,23 +53,25 @@ fn quoted_f64<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Option<f64>,
 }
 
 pub trait ProvincialClaimCodesGetter {
-
-    fn init_cc(version: &Version, prov: &ProvinceKey) -> Result<Vec<ProvincialClaimCode>, Box<dyn StdError>> {
+    fn init_cc(
+        version: &Version,
+        prov: &ProvinceKey,
+    ) -> Result<Vec<ProvincialClaimCode>, Box<dyn StdError>> {
         match prov {
             ProvinceKey::ON => Ok(init_cc_on(&version)?),
             _ => Err("Claim Codes for province {prov} is not implemented".into()),
-//            ProvinceKey::BC => Self::get_row_from_str(&records, "BC")?,
-//            ProvinceKey::MB => Self::get_row_from_str(&records, "MB")?,
-//            ProvinceKey::NB => Self::get_row_from_str(&records, "NB")?,
-//            ProvinceKey::NL => Self::get_row_from_str(&records, "NL")?,
-//            ProvinceKey::NS => Self::get_row_from_str(&records, "NS")?,
-//            ProvinceKey::NT => Self::get_row_from_str(&records, "NT")?,
-//            ProvinceKey::NU => Self::get_row_from_str(&records, "NU")?,
-//            ProvinceKey::ON => Self::get_row_from_str(&records, "ON")?,
-//            ProvinceKey::PE => Self::get_row_from_str(&records, "PE")?,
-//            ProvinceKey::QC => Self::get_row_from_str(&records, "QC")?,
-//            ProvinceKey::SK => Self::get_row_from_str(&records, "SK")?,
-//            ProvinceKey::YT => Self::get_row_from_str(&records, "YT")?,
+            //            ProvinceKey::BC => Self::get_row_from_str(&records, "BC")?,
+            //            ProvinceKey::MB => Self::get_row_from_str(&records, "MB")?,
+            //            ProvinceKey::NB => Self::get_row_from_str(&records, "NB")?,
+            //            ProvinceKey::NL => Self::get_row_from_str(&records, "NL")?,
+            //            ProvinceKey::NS => Self::get_row_from_str(&records, "NS")?,
+            //            ProvinceKey::NT => Self::get_row_from_str(&records, "NT")?,
+            //            ProvinceKey::NU => Self::get_row_from_str(&records, "NU")?,
+            //            ProvinceKey::ON => Self::get_row_from_str(&records, "ON")?,
+            //            ProvinceKey::PE => Self::get_row_from_str(&records, "PE")?,
+            //            ProvinceKey::QC => Self::get_row_from_str(&records, "QC")?,
+            //            ProvinceKey::SK => Self::get_row_from_str(&records, "SK")?,
+            //            ProvinceKey::YT => Self::get_row_from_str(&records, "YT")?,
         }
     }
 }

@@ -27,16 +27,24 @@ use crate::utils;
 *   K4P: Territorial non-refundable tax credit calculated using the provincial or territorial Canada employment amount. (currently unimplemented)
 */
 #[allow(non_snake_case)]
-pub fn T4(ctx: &Context, V: &f64, A: &f64, KP: &f64, K1P: &f64, K2P: &f64, K3P: Option<&f64>, K4P: Option<&f64>) -> Result<f64, &'static str> {
-
+pub fn T4(
+    ctx: &Context,
+    V: &f64,
+    A: &f64,
+    KP: &f64,
+    K1P: &f64,
+    K2P: &f64,
+    K3P: Option<&f64>,
+    K4P: Option<&f64>,
+) -> Result<f64, &'static str> {
     let k4p = match K4P {
         Some(x) => x,
-        None => &0.0
+        None => &0.0,
     };
 
     let k3p = match K3P {
-        Some(x)  => x,
-        None => &0.0
+        Some(x) => x,
+        None => &0.0,
     };
 
     let t4: f64 = (V * A) - KP - K1P - K2P - k3p - k4p;

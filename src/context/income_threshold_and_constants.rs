@@ -1,15 +1,18 @@
 //! Rates (R, V), Income Thresholds (A), and Constants (K, KP).
 
-use super::{Version, ProvinceKey, Province, Federal};
+use super::{Federal, Province, ProvinceKey, Version};
 use csv::{ReaderBuilder, StringRecord};
 use serde::{de, Deserialize, Deserializer, Serialize};
-use std::error::Error as StdError;
 use serde_json::Value;
+use std::error::Error as StdError;
 
 pub trait RITCGetter {
     /** Initialize Rates, Income Thresholds and Constants.
      */
-    fn init_prov_ritc(version: &Version, prov: &ProvinceKey) -> Result<ProvRITC, Box<dyn StdError>> {
+    fn init_prov_ritc(
+        version: &Version,
+        prov: &ProvinceKey,
+    ) -> Result<ProvRITC, Box<dyn StdError>> {
         let records = <Province as RITCGetter>::init_all(&version)?;
 
         Ok(match prov {
@@ -30,7 +33,10 @@ pub trait RITCGetter {
     }
 
     fn init_fed_ritc(version: &Version) -> Result<FedRITC, Box<dyn StdError>> {
-        Ok(FedRITC::from_prov_ritc(get_row_from_str(&<Federal as RITCGetter>::init_all(&version)?, "Federal")?))
+        Ok(FedRITC::from_prov_ritc(get_row_from_str(
+            &<Federal as RITCGetter>::init_all(&version)?,
+            "Federal",
+        )?))
     }
 
     fn init_all(version: &Version) -> Result<Vec<ProvRITC>, Box<dyn StdError>> {
@@ -54,7 +60,6 @@ pub trait RITCGetter {
 
         rdr.set_headers(StringRecord::from(new_headers));
 
-
         let mut records: Vec<CSVData> = Vec::new();
 
         for rec in rdr.deserialize() {
@@ -63,22 +68,25 @@ pub trait RITCGetter {
         }
 
         if records.len() != 40 {
-            return Err(format!("Datafile corrupt. Expected 40 rows. got {} rows", records.len()).into());
+            return Err(format!(
+                "Datafile corrupt. Expected 40 rows. got {} rows",
+                records.len()
+            )
+            .into());
         }
 
         Ok(handle_multiaxis(records))
     }
-
 }
 
 fn get_row_from_str(recs: &Vec<ProvRITC>, s: &str) -> Result<ProvRITC, &'static str> {
-    recs
-    .iter()
-    .filter(|otr| otr.prov == s)
-    .collect::<Vec<&ProvRITC>>()
-    .pop().ok_or_else(|| "unable to locate RITC for {s}")
-    .clone()
-    .cloned()
+    recs.iter()
+        .filter(|otr| otr.prov == s)
+        .collect::<Vec<&ProvRITC>>()
+        .pop()
+        .ok_or_else(|| "unable to locate RITC for {s}")
+        .clone()
+        .cloned()
 }
 
 fn handle_multiaxis(records: Vec<CSVData>) -> Vec<ProvRITC> {
@@ -92,24 +100,23 @@ fn handle_multiaxis(records: Vec<CSVData>) -> Vec<ProvRITC> {
                 let mut ritc = ProvRITC::new_empty(rec.fed_prov.clone());
                 ritc.A.append(&mut vals);
                 ma_recs.push(ritc);
-            },
+            }
             rec if rec.key == "V" => {
                 let rec = ma_recs.last_mut().unwrap();
                 rec.V.append(&mut vals);
-            },
+            }
             rec if rec.key == "K" || rec.key == "KP" => {
                 let rec = ma_recs.last_mut().unwrap();
                 rec.KP.append(&mut vals);
-            },
-            _ => {},
-
+            }
+            _ => {}
         };
     }
     ma_recs
 }
 
 fn handle_options(rec: &CSVData) -> Vec<f64> {
-     let vec = vec![
+    let vec = vec![
         rec.first,
         rec.second,
         rec.third,

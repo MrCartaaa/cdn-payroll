@@ -4,7 +4,7 @@ use encoding_rs::UTF_8;
 use std::collections::BTreeSet;
 use std::fs::File;
 
-use super::{Version, ProvinceKey, Province, Federal};
+use super::{Federal, Province, ProvinceKey, Version};
 use csv::{ReaderBuilder, StringRecord};
 use encoding_rs_io::DecodeReaderBytesBuilder;
 use serde::{de, Deserialize, Deserializer, Serialize};
@@ -38,7 +38,7 @@ pub trait ORAGetter {
             ProvinceKey::QC => get_row_from_str(&records, "QC")?,
             ProvinceKey::SK => get_row_from_str(&records, "SK")?,
             ProvinceKey::YT => get_row_from_str(&records, "YT")?,
-            })
+        })
     }
 
     /// Initialize Federal Other Rates and Amounts
@@ -52,7 +52,6 @@ pub trait ORAGetter {
 
     /// Initialize all Other Rates and Amounts
     fn init_all(version: &Version) -> Result<Vec<ORA>, Box<dyn StdError>> {
-
         let file_name = match version {
             Version::V2025_1 => "cra-constants/v2025_1/thrrtsmnts-01-25e.csv",
         };
@@ -91,17 +90,16 @@ pub trait ORAGetter {
 
         Ok(handle_multiaxis(records))
     }
-
 }
 
 fn get_row_from_str(recs: &Vec<ORA>, s: &str) -> Result<ORA, &'static str> {
-    recs
-    .iter()
-    .filter(|otr| otr.fed_prov == s)
-    .collect::<Vec<&ORA>>()
-    .pop().ok_or_else(|| "unable to locate ORA for {s}")
-    .clone()
-    .cloned()
+    recs.iter()
+        .filter(|otr| otr.fed_prov == s)
+        .collect::<Vec<&ORA>>()
+        .pop()
+        .ok_or_else(|| "unable to locate ORA for {s}")
+        .clone()
+        .cloned()
 }
 
 fn handle_multiaxis(mut records: Vec<ORA>) -> Vec<ORA> {
@@ -229,7 +227,7 @@ pub struct ORA {
     pub V2Rate: Option<Vec<f64>>,
     #[serde(deserialize_with = "quoted_vec_f64", rename = "V2 Maximum")]
     pub V2Max: Option<Vec<f64>>,
-    #[serde(deserialize_with= "quoted_f64", rename = "Y factor")]
+    #[serde(deserialize_with = "quoted_f64", rename = "Y factor")]
     pub YFactor: Option<f64>,
     #[serde(deserialize_with = "quoted_f64", rename = "Abatement")]
     pub Abat: Option<f64>,
@@ -351,12 +349,31 @@ mod tests {
         let result = ORA::init_all(&Version::V2025_1);
         assert!(&result.is_ok());
         let otr_recs = result.unwrap();
-        assert_eq!(get_row_from_str(&otr_recs, "Federal").unwrap().BasicAmt, Some(BasicAmount::Federal));
-        assert!(get_row_from_str(&otr_recs, "ON").unwrap().T4atV1.unwrap().contains(&5710.0));
+        assert_eq!(
+            get_row_from_str(&otr_recs, "Federal").unwrap().BasicAmt,
+            Some(BasicAmount::Federal)
+        );
+        assert!(get_row_from_str(&otr_recs, "ON")
+            .unwrap()
+            .T4atV1
+            .unwrap()
+            .contains(&5710.0));
         assert_eq!(get_row_from_str(&otr_recs, "QC").unwrap().LCPAmt, None);
         assert_eq!(get_row_from_str(&otr_recs, "AB").unwrap().IRate, Some(0.02));
-        assert!(get_row_from_str(&otr_recs, "ON").unwrap().AatV2.unwrap().contains(&200000.0));
-        assert!(get_row_from_str(&otr_recs, "ON").unwrap().V2Rate.unwrap().contains(&0.25));
-        assert!(get_row_from_str(&otr_recs, "ON").unwrap().V2Max.unwrap().contains(&450.0));
+        assert!(get_row_from_str(&otr_recs, "ON")
+            .unwrap()
+            .AatV2
+            .unwrap()
+            .contains(&200000.0));
+        assert!(get_row_from_str(&otr_recs, "ON")
+            .unwrap()
+            .V2Rate
+            .unwrap()
+            .contains(&0.25));
+        assert!(get_row_from_str(&otr_recs, "ON")
+            .unwrap()
+            .V2Max
+            .unwrap()
+            .contains(&450.0));
     }
 }

@@ -253,9 +253,14 @@ pub fn S(ctx: &Context, T4: &f64, V1: &f64, Y: Option<&f64>) -> Result<f64, &'st
 * ```
 */
 #[allow(non_snake_case)]
-pub fn Y(ctx: &Context, number_of_disabled_dependants: &i64, number_if_minor_dependents: &i64) -> Result<f64, &'static str> {
+pub fn Y(
+    ctx: &Context,
+    number_of_disabled_dependants: &i64,
+    number_if_minor_dependents: &i64,
+) -> Result<f64, &'static str> {
     let ora_on = &ctx.prov.ORA;
     let y_factor = &ora_on.YFactor.ok_or_else(|| "unable to locate Y factor.")?;
 
-    Ok(y_factor * &(*number_of_disabled_dependants as f64) + y_factor * &(*number_if_minor_dependents as f64))
+    Ok(y_factor * &(*number_of_disabled_dependants as f64)
+        + y_factor * &(*number_if_minor_dependents as f64))
 }

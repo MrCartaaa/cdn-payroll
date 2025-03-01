@@ -45,7 +45,6 @@ impl Context {
      */
     #[allow(non_snake_case)]
     pub fn new(version: Version, province: ProvinceKey) -> Result<Self, Box<dyn Error>> {
-
         let prov = Province::init(&version, province)?;
 
         let fed = Federal::init(&version)?;
@@ -105,7 +104,7 @@ impl RITCGetter for Federal {}
 
 impl Federal {
     pub fn init(version: &Version) -> Result<Federal, Box<dyn Error>> {
-        Ok(Self{
+        Ok(Self {
             ORA: Self::init_fed_otr(&version)?,
             CC: Self::init_fed_cc(&version)?,
             RITC: Self::init_fed_ritc(&version)?,
@@ -139,7 +138,6 @@ impl Province {
     }
 }
 
-
 // Province Enum
 //
 // This directs Context to get the correct provincal constants defined by the user,
@@ -160,4 +158,3 @@ pub enum ProvinceKey {
     SK,
     YT,
 }
-

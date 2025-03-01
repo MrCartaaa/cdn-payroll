@@ -158,7 +158,7 @@ pub fn S1(total_pay_periods: i64, current_pay_period: i64) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::context::{Version, ProvinceKey};
+    use crate::context::{ProvinceKey, Version};
 
     #[test]
     #[allow(non_snake_case)]
