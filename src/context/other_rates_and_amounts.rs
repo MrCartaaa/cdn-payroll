@@ -4,37 +4,55 @@ use encoding_rs::UTF_8;
 use std::collections::BTreeSet;
 use std::fs::File;
 
-use super::Version;
+use super::{Version, ProvinceKey, Province, Federal};
 use csv::{ReaderBuilder, StringRecord};
 use encoding_rs_io::DecodeReaderBytesBuilder;
 use serde::{de, Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 use std::error::Error as StdError;
 
-/// Other Federal, Provincial and Outside of Canada Rates and Amounts
+/// Other Federal and Outside of Canada Rates and Amounts
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[allow(non_snake_case)]
 pub struct OtherRatesAndAmounts {
     pub Federal: ORA,
-    pub AB: ORA,
-    pub BC: ORA,
-    pub MB: ORA,
-    pub NB: ORA,
-    pub NL: ORA,
-    pub NS: ORA,
-    pub NT: ORA,
-    pub NU: ORA,
-    pub ON: ORA,
-    pub QC: ORA,
-    pub PE: ORA,
-    pub SK: ORA,
-    pub YT: ORA,
     pub notCA: ORA,
 }
 
-impl OtherRatesAndAmounts {
-    /// Initialize Other Rates and Amounts
-    pub fn init(version: &Version) -> Result<OtherRatesAndAmounts, Box<dyn StdError>> {
+pub trait ORAGetter {
+    /// Initialize Provincial Other Rates and Amounts
+    fn init_prov_otr(version: &Version, prov: &ProvinceKey) -> Result<ORA, Box<dyn StdError>> {
+        let records = <Province as ORAGetter>::init_all(&version)?;
+
+        Ok(match prov {
+            ProvinceKey::AB => get_row_from_str(&records, "AB")?,
+            ProvinceKey::BC => get_row_from_str(&records, "BC")?,
+            ProvinceKey::MB => get_row_from_str(&records, "MB")?,
+            ProvinceKey::NB => get_row_from_str(&records, "NB")?,
+            ProvinceKey::NL => get_row_from_str(&records, "NL")?,
+            ProvinceKey::NS => get_row_from_str(&records, "NS")?,
+            ProvinceKey::NT => get_row_from_str(&records, "NT")?,
+            ProvinceKey::NU => get_row_from_str(&records, "NU")?,
+            ProvinceKey::ON => get_row_from_str(&records, "ON")?,
+            ProvinceKey::PE => get_row_from_str(&records, "PE")?,
+            ProvinceKey::QC => get_row_from_str(&records, "QC")?,
+            ProvinceKey::SK => get_row_from_str(&records, "SK")?,
+            ProvinceKey::YT => get_row_from_str(&records, "YT")?,
+            })
+    }
+
+    /// Initialize Federal Other Rates and Amounts
+    fn init_fed_otr(version: &Version) -> Result<OtherRatesAndAmounts, Box<dyn StdError>> {
+        let recs = <Federal as ORAGetter>::init_all(version)?;
+        Ok(OtherRatesAndAmounts {
+            Federal: get_row_from_str(&recs, "Federal")?,
+            notCA: get_row_from_str(&recs, "Outside Canada")?,
+        })
+    }
+
+    /// Initialize all Other Rates and Amounts
+    fn init_all(version: &Version) -> Result<Vec<ORA>, Box<dyn StdError>> {
+
         let file_name = match version {
             Version::V2025_1 => "cra-constants/v2025_1/thrrtsmnts-01-25e.csv",
         };
@@ -71,182 +89,86 @@ impl OtherRatesAndAmounts {
             return Err("Datafile corrrupt. Expected 17 rows.".into());
         }
 
-        let handled_records = Self::handle_multiaxis(records);
-
-        Ok(OtherRatesAndAmounts {
-            Federal: handled_records
-                .iter()
-                .filter(|otr| otr.fed_prov == "Federal")
-                .collect::<Vec<&ORA>>()
-                .pop()
-                .unwrap()
-                .clone(),
-            AB: handled_records
-                .iter()
-                .filter(|otr| otr.fed_prov == "AB")
-                .collect::<Vec<&ORA>>()
-                .pop()
-                .unwrap()
-                .clone(),
-            BC: handled_records
-                .iter()
-                .filter(|otr| otr.fed_prov == "BC")
-                .collect::<Vec<&ORA>>()
-                .pop()
-                .unwrap()
-                .clone(),
-            MB: handled_records
-                .iter()
-                .filter(|otr| otr.fed_prov == "MB")
-                .collect::<Vec<&ORA>>()
-                .pop()
-                .unwrap()
-                .clone(),
-            NB: handled_records
-                .iter()
-                .filter(|otr| otr.fed_prov == "NB")
-                .collect::<Vec<&ORA>>()
-                .pop()
-                .unwrap()
-                .clone(),
-            NL: handled_records
-                .iter()
-                .filter(|otr| otr.fed_prov == "NL")
-                .collect::<Vec<&ORA>>()
-                .pop()
-                .unwrap()
-                .clone(),
-            NS: handled_records
-                .iter()
-                .filter(|otr| otr.fed_prov == "NS")
-                .collect::<Vec<&ORA>>()
-                .pop()
-                .unwrap()
-                .clone(),
-            NT: handled_records
-                .iter()
-                .filter(|otr| otr.fed_prov == "NT")
-                .collect::<Vec<&ORA>>()
-                .pop()
-                .unwrap()
-                .clone(),
-            NU: handled_records
-                .iter()
-                .filter(|otr| otr.fed_prov == "NU")
-                .collect::<Vec<&ORA>>()
-                .pop()
-                .unwrap()
-                .clone(),
-            ON: handled_records
-                .iter()
-                .filter(|otr| otr.fed_prov == "ON")
-                .collect::<Vec<&ORA>>()
-                .pop()
-                .unwrap()
-                .clone(),
-            PE: handled_records
-                .iter()
-                .filter(|otr| otr.fed_prov == "PE")
-                .collect::<Vec<&ORA>>()
-                .pop()
-                .unwrap()
-                .clone(),
-            QC: handled_records
-                .iter()
-                .filter(|otr| otr.fed_prov == "QC")
-                .collect::<Vec<&ORA>>()
-                .pop()
-                .unwrap()
-                .clone(),
-            SK: handled_records
-                .iter()
-                .filter(|otr| otr.fed_prov == "SK")
-                .collect::<Vec<&ORA>>()
-                .pop()
-                .unwrap()
-                .clone(),
-            YT: handled_records
-                .iter()
-                .filter(|otr| otr.fed_prov == "YT")
-                .collect::<Vec<&ORA>>()
-                .pop()
-                .unwrap()
-                .clone(),
-            notCA: handled_records
-                .iter()
-                .filter(|otr| otr.fed_prov == "Outside Canada")
-                .collect::<Vec<&ORA>>()
-                .pop()
-                .unwrap()
-                .clone(),
-        })
+        Ok(handle_multiaxis(records))
     }
 
-    fn handle_multiaxis(mut records: Vec<ORA>) -> Vec<ORA> {
-        let mut last_fed_prov_row: usize = 9999;
-        let mut last_t4atv1: Vec<Option<Vec<f64>>> = Vec::new();
-        let mut last_v1rate: Vec<Option<Vec<f64>>> = Vec::new();
-        let mut last_aatv2: Vec<Option<Vec<f64>>> = Vec::new();
-        let mut last_v2rate: Vec<Option<Vec<f64>>> = Vec::new();
-        let mut last_v2max: Vec<Option<Vec<f64>>> = Vec::new();
-        let mut is_dirty: bool = false;
+}
 
-        for (i, rec) in records.clone().iter().enumerate() {
-            if !rec.fed_prov.is_empty() && is_dirty {
-                records[last_fed_prov_row] = ORA {
-                    fed_prov: records[last_fed_prov_row].fed_prov.clone(),
-                    BasicAmt: records[last_fed_prov_row].BasicAmt.clone(),
-                    IRate: records[last_fed_prov_row].IRate.clone(),
-                    LCPRate: records[last_fed_prov_row].LCPRate.clone(),
-                    LCPAmt: records[last_fed_prov_row].LCPAmt.clone(),
-                    CEA: records[last_fed_prov_row].CEA.clone(),
-                    S2: records[last_fed_prov_row].S2.clone(),
-                    T4atV1: Self::handle_nested_option_f64(last_t4atv1.clone()),
-                    V1Rate: Self::handle_nested_option_f64(last_v1rate.clone()),
-                    AatV2: Self::handle_nested_option_f64(last_aatv2.clone()),
-                    V2Rate: Self::handle_nested_option_f64(last_v2rate.clone()),
-                    V2Max: Self::handle_nested_option_f64(last_v2max.clone()),
-                    Abat: records[last_fed_prov_row].Abat.clone(),
-                    Surtax: records[last_fed_prov_row].Surtax.clone(),
-                };
-                last_fed_prov_row = 9999;
-                last_t4atv1 = Vec::new();
-                last_v1rate = Vec::new();
-                last_aatv2 = Vec::new();
-                last_v2rate = Vec::new();
-                last_v2max = Vec::new();
-                is_dirty = false;
-            }
+fn get_row_from_str(recs: &Vec<ORA>, s: &str) -> Result<ORA, &'static str> {
+    recs
+    .iter()
+    .filter(|otr| otr.fed_prov == s)
+    .collect::<Vec<&ORA>>()
+    .pop().ok_or_else(|| "unable to locate ORA for {s}")
+    .clone()
+    .cloned()
+}
 
-            last_t4atv1.push(rec.T4atV1.clone());
-            last_v1rate.push(rec.V1Rate.clone());
-            last_aatv2.push(rec.AatV2.clone());
-            last_v2rate.push(rec.V2Rate.clone());
-            last_v2max.push(rec.V2Max.clone());
+fn handle_multiaxis(mut records: Vec<ORA>) -> Vec<ORA> {
+    let mut last_fed_prov_row: usize = 9999;
+    let mut last_t4atv1: Vec<Option<Vec<f64>>> = Vec::new();
+    let mut last_v1rate: Vec<Option<Vec<f64>>> = Vec::new();
+    let mut last_aatv2: Vec<Option<Vec<f64>>> = Vec::new();
+    let mut last_v2rate: Vec<Option<Vec<f64>>> = Vec::new();
+    let mut last_v2max: Vec<Option<Vec<f64>>> = Vec::new();
+    let mut is_dirty: bool = false;
 
-            if !rec.fed_prov.is_empty() {
-                last_fed_prov_row = i;
-            } else {
-                is_dirty = true;
-            }
+    for (i, rec) in records.clone().iter().enumerate() {
+        if !rec.fed_prov.is_empty() && is_dirty {
+            records[last_fed_prov_row] = ORA {
+                fed_prov: records[last_fed_prov_row].fed_prov.clone(),
+                BasicAmt: records[last_fed_prov_row].BasicAmt.clone(),
+                IRate: records[last_fed_prov_row].IRate.clone(),
+                LCPRate: records[last_fed_prov_row].LCPRate.clone(),
+                LCPAmt: records[last_fed_prov_row].LCPAmt.clone(),
+                CEA: records[last_fed_prov_row].CEA.clone(),
+                S2: records[last_fed_prov_row].S2.clone(),
+                T4atV1: handle_nested_option_f64(last_t4atv1.clone()),
+                V1Rate: handle_nested_option_f64(last_v1rate.clone()),
+                AatV2: handle_nested_option_f64(last_aatv2.clone()),
+                V2Rate: handle_nested_option_f64(last_v2rate.clone()),
+                V2Max: handle_nested_option_f64(last_v2max.clone()),
+                YFactor: records[last_fed_prov_row].YFactor.clone(),
+                Abat: records[last_fed_prov_row].Abat.clone(),
+                Surtax: records[last_fed_prov_row].Surtax.clone(),
+            };
+            last_fed_prov_row = 9999;
+            last_t4atv1 = Vec::new();
+            last_v1rate = Vec::new();
+            last_aatv2 = Vec::new();
+            last_v2rate = Vec::new();
+            last_v2max = Vec::new();
+            is_dirty = false;
         }
 
-        records.retain(|i| !i.fed_prov.is_empty());
-        records
+        last_t4atv1.push(rec.T4atV1.clone());
+        last_v1rate.push(rec.V1Rate.clone());
+        last_aatv2.push(rec.AatV2.clone());
+        last_v2rate.push(rec.V2Rate.clone());
+        last_v2max.push(rec.V2Max.clone());
+
+        if !rec.fed_prov.is_empty() {
+            last_fed_prov_row = i;
+        } else {
+            is_dirty = true;
+        }
     }
 
-    fn handle_nested_option_f64(vecs: Vec<Option<Vec<f64>>>) -> Option<Vec<f64>> {
-        let mut result: Vec<f64> = Vec::new();
-        for v in vecs {
-            if v.is_some() {
-                result.append(&mut v.unwrap());
-            }
+    records.retain(|i| !i.fed_prov.is_empty());
+    records
+}
+
+fn handle_nested_option_f64(vecs: Vec<Option<Vec<f64>>>) -> Option<Vec<f64>> {
+    let mut result: Vec<f64> = Vec::new();
+    for v in vecs {
+        if v.is_some() {
+            result.append(&mut v.unwrap());
         }
-        if result.len() > 0 {
-            return Some(result);
-        }
-        None
     }
+    if result.len() > 0 {
+        return Some(result);
+    }
+    None
 }
 
 /** Other Rates and Amounts
@@ -274,6 +196,8 @@ impl OtherRatesAndAmounts {
 *   V2Rate: V2 Rate
 *
 *   V2Max: V2 Maximum
+*
+*   YFactor: factor used in Ontario [Y function](../provincial_income_tax/ontario/fn.Y.html)
 *
 *   Abat: Abatement
 *
@@ -305,6 +229,8 @@ pub struct ORA {
     pub V2Rate: Option<Vec<f64>>,
     #[serde(deserialize_with = "quoted_vec_f64", rename = "V2 Maximum")]
     pub V2Max: Option<Vec<f64>>,
+    #[serde(deserialize_with= "quoted_f64", rename = "Y factor")]
+    pub YFactor: Option<f64>,
     #[serde(deserialize_with = "quoted_f64", rename = "Abatement")]
     pub Abat: Option<f64>,
     #[serde(deserialize_with = "quoted_f64", rename = "Surtax")]
@@ -419,15 +345,18 @@ mod tests {
 
     #[test]
     fn test_init_other_rates_and_amounts() {
-        let result = OtherRatesAndAmounts::init(&Version::V2025_1);
+        struct ORA {}
+        impl ORAGetter for ORA {}
+
+        let result = ORA::init_all(&Version::V2025_1);
         assert!(&result.is_ok());
-        let otr = result.unwrap();
-        assert_eq!(&otr.Federal.BasicAmt, &Some(BasicAmount::Federal));
-        assert!(&otr.ON.T4atV1.unwrap().contains(&5710.0));
-        assert_eq!(&otr.QC.LCPAmt, &None);
-        assert_eq!(&otr.AB.IRate, &Some(0.02));
-        assert!(&otr.ON.AatV2.unwrap().contains(&200000.0));
-        assert!(&otr.ON.V2Rate.unwrap().contains(&0.25));
-        assert!(&otr.ON.V2Max.unwrap().contains(&450.0));
+        let otr_recs = result.unwrap();
+        assert_eq!(get_row_from_str(&otr_recs, "Federal").unwrap().BasicAmt, Some(BasicAmount::Federal));
+        assert!(get_row_from_str(&otr_recs, "ON").unwrap().T4atV1.unwrap().contains(&5710.0));
+        assert_eq!(get_row_from_str(&otr_recs, "QC").unwrap().LCPAmt, None);
+        assert_eq!(get_row_from_str(&otr_recs, "AB").unwrap().IRate, Some(0.02));
+        assert!(get_row_from_str(&otr_recs, "ON").unwrap().AatV2.unwrap().contains(&200000.0));
+        assert!(get_row_from_str(&otr_recs, "ON").unwrap().V2Rate.unwrap().contains(&0.25));
+        assert!(get_row_from_str(&otr_recs, "ON").unwrap().V2Max.unwrap().contains(&450.0));
     }
 }

@@ -1,38 +1,49 @@
-//! Annual Basic Provincial or Territorial Tax
+//! # Annual Basic Provincial or Territorial Tax
 
 use crate::context;
+use crate::context::Context;
 use crate::utils;
 
-/** Annual basic provincial or territorial tax
+/** ## Annual basic provincial or territorial tax
 *
 *   For cumulative T4 Calculations, use /[x/]_grad in the below list (if not listed, use the normal
 *   parameter).
 *
 *
-* Given:
+* ### Arguements:
 *
 *   V: Provincial or territorial tax rate for the year
 *
-*   A: Annual taxable income
+*   [A](../../basic_personal_income/fn.A.html) \[or [A_grad](../../basic_personal_income/fn.A_grad.html)\]: Annual taxable income.
 *
 *   KP: Provincial or territorial constant
 *
-*   K2P: Base Canada Pension Plan contributions and employment insurance premiums federal tax credits for the year
-*         Note: If an employee has already contributed the maximum CPP and EI, for the year with the employer, use the maximum base CPP contribution and the maximum EI premium to calculate the credit for the rest of the year. If, during the pay period in which the employee reaches the maximum, the CPP and  EI, when annualized, is less than the annual maximum, use the maximum base CPP contribution and the maximum EI premium in that pay period
+*   [K2P](./fn.K2P.html) \[or [K2P_grad](./fn.K2P.html)\]: Base Canada Pension Plan contributions and employment insurance premiums federal tax credits for the year.
 *
-*   K2P_grad: see K2P
+*   Note: If an employee has already contributed the maximum CPP and EI, for the year with the employer, use the maximum base CPP contribution and the maximum EI premium to calculate the credit for the rest of the year. If, during the pay period in which the employee reaches the maximum, the CPP and  EI, when annualized, is less than the annual maximum, use the maximum base CPP contribution and the maximum EI premium in that pay period
 *
 *   K3P: Other provincial or territorial non-refundable tax credits
 *
-*   4P: Territorial non-refundable tax credit calculated using the provincial or territorial Canada employment amount
+*   K4P: Territorial non-refundable tax credit calculated using the provincial or territorial Canada employment amount. (currently unimplemented)
 */
 #[allow(non_snake_case)]
-pub fn T4(V: f64, A: f64, KP: f64, K1P: f64, K2P: f64, K3P: f64, K4P: f64) -> f64 {
-    let t4: f64 = (V * A) - KP - K1P - K2P - K3P - K4P;
+pub fn T4(ctx: &Context, V: &f64, A: &f64, KP: &f64, K1P: &f64, K2P: &f64, K3P: Option<&f64>, K4P: Option<&f64>) -> Result<f64, &'static str> {
+
+    let k4p = match K4P {
+        Some(x) => x,
+        None => &0.0
+    };
+
+    let k3p = match K3P {
+        Some(x)  => x,
+        None => &0.0
+    };
+
+    let t4: f64 = (V * A) - KP - K1P - K2P - k3p - k4p;
     if t4 < 0.0 {
-        return 0.0;
+        return Ok(0.0);
     }
-    utils::round(t4)
+    Ok(utils::round(t4))
 }
 
 /** Annual provincial or territorial tax deduction (except Quebec)

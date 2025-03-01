@@ -34,9 +34,9 @@ use other_rates_and_amounts::*;
 #[allow(non_snake_case)]
 pub struct Context {
     pub version: Version,
+    pub prov: Province,
+    pub fed: Federal,
     pub ITC: IncomeThresholdAndConstants,
-    pub ORA: OtherRatesAndAmounts,
-    pub CC: CCCtx,
     pub CPP: CPPCtx,
     pub EIContRate: EmploymentInsuranceRatesAndAmounts,
 }
@@ -45,12 +45,12 @@ impl Context {
     /** Create New Context.
      */
     #[allow(non_snake_case)]
-    pub fn new(version: Version) -> Result<Self, Box<dyn Error>> {
+    pub fn new(version: Version, province: ProvinceKey) -> Result<Self, Box<dyn Error>> {
         let ITC = IncomeThresholdAndConstants::init(&version)?;
-        let ORA = OtherRatesAndAmounts::init(&version)?;
 
-        let FCC = FederalClaimCodes::init(&version)?;
-        let ONCC = ProvincialClaimCodes::init_on(&version)?;
+        let prov = Province::init(&version, province)?;
+
+        let fed = Federal::init(&version)?;
 
         let CPPContRate = CanadaPensionPlanContributionRatesAndAmounts::init(&version)?;
         let BaseCPPRate = BaseCanadaPensionPlanRatesAndAmounts::init(&version)?;
@@ -62,16 +62,13 @@ impl Context {
         Ok(Self {
             version,
             ITC,
-            ORA,
+            fed,
+            prov,
             CPP: CPPCtx {
                 CPPContRate,
                 BaseCPPRate,
                 CPPFAddntlRate,
                 CPPSAddntlRate,
-            },
-            CC: CCCtx {
-                Federal: FCC.CC,
-                ON: ONCC.CC,
             },
             EIContRate,
         })
@@ -103,3 +100,69 @@ pub struct CCCtx {
 pub enum Version {
     V2025_1,
 }
+
+/// Federal Constants
+#[derive(Debug)]
+#[allow(non_snake_case)]
+pub struct Federal {
+    pub ORA: OtherRatesAndAmounts,
+    pub CC: Vec<FederalClaimCode>,
+}
+
+impl ORAGetter for Federal {}
+impl FederalClaimCodesGetter for Federal {}
+
+impl Federal {
+    pub fn init(version: &Version) -> Result<Federal, Box<dyn Error>> {
+        Ok(Self{
+            ORA: Self::init_fed_otr(&version)?,
+            CC: Self::init_fed_cc(&version)?,
+        })
+    }
+}
+
+/// Province Constants
+#[derive(Debug)]
+#[allow(non_snake_case)]
+pub struct Province {
+    pub prov: ProvinceKey,
+    pub ORA: ORA,
+    pub CC: Vec<ProvincialClaimCode>,
+}
+
+impl ORAGetter for Province {}
+impl ProvincialClaimCodesGetter for Province {}
+
+impl Province {
+    // Initialize Provincial Constants
+    pub fn init(version: &Version, prov: ProvinceKey) -> Result<Province, Box<dyn Error>> {
+        Ok(Self {
+            prov: prov.clone(),
+            ORA: Self::init_prov_otr(&version, &prov)?,
+            CC: Self::init_cc(&version, &prov)?,
+        })
+    }
+}
+
+
+// Province Enum
+//
+// This directs Context to get the correct provincal constants defined by the user,
+// upstream
+#[derive(Debug, Clone)]
+pub enum ProvinceKey {
+    AB,
+    BC,
+    MB,
+    NB,
+    NL,
+    NS,
+    NT,
+    NU,
+    ON,
+    QC,
+    PE,
+    SK,
+    YT,
+}
+

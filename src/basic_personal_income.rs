@@ -158,12 +158,12 @@ pub fn S1(total_pay_periods: i64, current_pay_period: i64) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::context::Version;
+    use crate::context::{Version, ProvinceKey};
 
     #[test]
     #[allow(non_snake_case)]
     fn test_BPAF_minimum_amt() {
-        let ctx = Context::new(Version::V2025_1);
+        let ctx = Context::new(Version::V2025_1, ProvinceKey::ON);
         assert!(ctx.is_ok());
         let result = BPAF(ctx.unwrap(), 10000.0, 0.0);
         assert_eq!(result, context::MINIMUM_BASIC_AMT);
@@ -172,7 +172,7 @@ mod tests {
     #[test]
     #[allow(non_snake_case)]
     fn test_BPAF_maximum_amt() {
-        let ctx = Context::new(Version::V2025_1);
+        let ctx = Context::new(Version::V2025_1, ProvinceKey::ON);
         assert!(ctx.is_ok());
         let result = BPAF(ctx.unwrap(), 253414.01, 0.0);
         assert_eq!(result, context::MAXIMUM_BASIC_AMT);

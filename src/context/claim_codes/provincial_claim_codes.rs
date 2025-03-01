@@ -1,6 +1,6 @@
 //! Ontario Claim Codes (using maimum BPAF) as defined by the CRA.
 
-use crate::context::Version;
+use crate::context::{Version, ProvinceKey};
 use csv::ReaderBuilder;
 use serde::{de, Deserialize, Deserializer, Serialize};
 use serde_json::Value;
@@ -52,39 +52,47 @@ fn quoted_f64<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Option<f64>,
     })
 }
 
-/** Provincial Claim Codes
-*
-* Where:
-*   CC: Vec of Claim Codes (0..10)
-*/
-#[derive(Debug)]
-#[allow(non_snake_case)]
-pub struct ProvincialClaimCodes {
-    pub CC: Vec<ProvincialClaimCode>,
+pub trait ProvincialClaimCodesGetter {
+
+    fn init_cc(version: &Version, prov: &ProvinceKey) -> Result<Vec<ProvincialClaimCode>, Box<dyn StdError>> {
+        match prov {
+            ProvinceKey::ON => Ok(init_cc_on(&version)?),
+            _ => Err("Claim Codes for province {prov} is not implemented".into()),
+//            ProvinceKey::BC => Self::get_row_from_str(&records, "BC")?,
+//            ProvinceKey::MB => Self::get_row_from_str(&records, "MB")?,
+//            ProvinceKey::NB => Self::get_row_from_str(&records, "NB")?,
+//            ProvinceKey::NL => Self::get_row_from_str(&records, "NL")?,
+//            ProvinceKey::NS => Self::get_row_from_str(&records, "NS")?,
+//            ProvinceKey::NT => Self::get_row_from_str(&records, "NT")?,
+//            ProvinceKey::NU => Self::get_row_from_str(&records, "NU")?,
+//            ProvinceKey::ON => Self::get_row_from_str(&records, "ON")?,
+//            ProvinceKey::PE => Self::get_row_from_str(&records, "PE")?,
+//            ProvinceKey::QC => Self::get_row_from_str(&records, "QC")?,
+//            ProvinceKey::SK => Self::get_row_from_str(&records, "SK")?,
+//            ProvinceKey::YT => Self::get_row_from_str(&records, "YT")?,
+        }
+    }
 }
 
-impl ProvincialClaimCodes {
-    /// Initialize Ontario Claim Codes
-    pub fn init_on(version: &Version) -> Result<ProvincialClaimCodes, Box<dyn StdError>> {
-        let mut records: Vec<ProvincialClaimCode> = Vec::new();
+fn init_cc_on(version: &Version) -> Result<Vec<ProvincialClaimCode>, Box<dyn StdError>> {
+    let mut records: Vec<ProvincialClaimCode> = Vec::new();
 
-        let file_name = match version {
-            Version::V2025_1 => "cra-constants/v2025_1/cc-on-01-25e.csv",
-        };
+    let file_name = match version {
+        Version::V2025_1 => "cra-constants/v2025_1/cc-on-01-25e.csv",
+    };
 
-        let mut rdr = ReaderBuilder::new().from_path(file_name)?;
+    let mut rdr = ReaderBuilder::new().from_path(file_name)?;
 
-        for result in rdr.deserialize() {
-            let rec: ProvincialClaimCode = result?;
-            records.push(rec.clone());
-        }
-
-        if records.len() != 11 {
-            return Err("Datafile Corrupt. Expected 11 claim codes (0-10)".into());
-        }
-
-        Ok(Self { CC: records })
+    for result in rdr.deserialize() {
+        let rec: ProvincialClaimCode = result?;
+        records.push(rec.clone());
     }
+
+    if records.len() != 11 {
+        return Err("Datafile Corrupt. Expected 11 claim codes (0-10)".into());
+    }
+
+    Ok(records)
 }
 
 #[cfg(test)]
@@ -93,13 +101,16 @@ mod tests {
 
     #[test]
     fn test_init_fed_claim_codes() {
-        let result = ProvincialClaimCodes::init_on(&Version::V2025_1);
+        struct ProvincialClaimCodes {}
+        impl ProvincialClaimCodesGetter for ProvincialClaimCodes {}
+
+        let result = ProvincialClaimCodes::init_cc(&Version::V2025_1, &ProvinceKey::ON);
         assert!(result.is_ok());
 
         let fcc = result.unwrap();
 
         assert_eq!(
-            fcc.CC.get(0).unwrap(),
+            fcc.get(0).unwrap(),
             &ProvincialClaimCode {
                 TCAmtFloor: None,
                 TCAmtCeil: None,
@@ -108,7 +119,7 @@ mod tests {
             }
         );
         assert_eq!(
-            fcc.CC.get(5).unwrap(),
+            fcc.get(5).unwrap(),
             &ProvincialClaimCode {
                 TCAmtFloor: Some(20985.01),
                 TCAmtCeil: Some(23731.0),
@@ -117,7 +128,7 @@ mod tests {
             }
         );
         assert_eq!(
-            fcc.CC.get(9).unwrap(),
+            fcc.get(9).unwrap(),
             &ProvincialClaimCode {
                 TCAmtFloor: Some(31969.01),
                 TCAmtCeil: Some(34715.0),

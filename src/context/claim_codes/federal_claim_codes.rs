@@ -52,20 +52,9 @@ fn quoted_f64<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Option<f64>,
     })
 }
 
-/** Federal Claim Codes
-*
-* Where:
-*   CC: Vec of Claim Codes (0..10)
-*/
-#[derive(Debug)]
-#[allow(non_snake_case)]
-pub struct FederalClaimCodes {
-    pub CC: Vec<FederalClaimCode>,
-}
-
-impl FederalClaimCodes {
+pub trait FederalClaimCodesGetter {
     /// Initialize Federal Claim Codes
-    pub fn init(version: &Version) -> Result<FederalClaimCodes, Box<dyn StdError>> {
+    fn init_fed_cc(version: &Version) -> Result<Vec<FederalClaimCode>, Box<dyn StdError>> {
         let mut records: Vec<FederalClaimCode> = Vec::new();
 
         let file_name = match version {
@@ -83,7 +72,7 @@ impl FederalClaimCodes {
             return Err("Datafile Corrupt. Expected 11 claim codes (0-10)".into());
         }
 
-        Ok(Self { CC: records })
+        Ok(records)
     }
 }
 
@@ -93,13 +82,16 @@ mod tests {
 
     #[test]
     fn test_init_fed_claim_codes() {
-        let result = FederalClaimCodes::init(&Version::V2025_1);
+        struct FederalClaimCodes {}
+        impl FederalClaimCodesGetter for FederalClaimCodes {}
+
+        let result = FederalClaimCodes::init_fed_cc(&Version::V2025_1);
         assert!(result.is_ok());
 
         let fcc = result.unwrap();
 
         assert_eq!(
-            fcc.CC.get(0).unwrap(),
+            fcc.get(0).unwrap(),
             &FederalClaimCode {
                 TCAmtFloor: None,
                 TCAmtCeil: None,
@@ -108,7 +100,7 @@ mod tests {
             }
         );
         assert_eq!(
-            fcc.CC.get(5).unwrap(),
+            fcc.get(5).unwrap(),
             &FederalClaimCode {
                 TCAmtFloor: Some(24463.01),
                 TCAmtCeil: Some(27241.0),
@@ -117,7 +109,7 @@ mod tests {
             }
         );
         assert_eq!(
-            fcc.CC.get(9).unwrap(),
+            fcc.get(9).unwrap(),
             &FederalClaimCode {
                 TCAmtFloor: Some(35575.01),
                 TCAmtCeil: Some(38353.0),
