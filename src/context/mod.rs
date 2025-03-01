@@ -36,7 +36,6 @@ pub struct Context {
     pub version: Version,
     pub prov: Province,
     pub fed: Federal,
-    pub ITC: IncomeThresholdAndConstants,
     pub CPP: CPPCtx,
     pub EIContRate: EmploymentInsuranceRatesAndAmounts,
 }
@@ -46,7 +45,6 @@ impl Context {
      */
     #[allow(non_snake_case)]
     pub fn new(version: Version, province: ProvinceKey) -> Result<Self, Box<dyn Error>> {
-        let ITC = IncomeThresholdAndConstants::init(&version)?;
 
         let prov = Province::init(&version, province)?;
 
@@ -61,7 +59,6 @@ impl Context {
 
         Ok(Self {
             version,
-            ITC,
             fed,
             prov,
             CPP: CPPCtx {
@@ -85,14 +82,6 @@ pub struct CPPCtx {
     pub CPPSAddntlRate: SecondAdditionalCanadaPensionPlanRatesAndAmounts,
 }
 
-/// Context for Federal and Provincial Claim Codes
-#[derive(Debug)]
-#[allow(non_snake_case)]
-pub struct CCCtx {
-    pub Federal: Vec<FederalClaimCode>,
-    pub ON: Vec<ProvincialClaimCode>,
-}
-
 /// Context Version
 ///
 /// This directs Context to read the correct CRA files
@@ -107,16 +96,19 @@ pub enum Version {
 pub struct Federal {
     pub ORA: OtherRatesAndAmounts,
     pub CC: Vec<FederalClaimCode>,
+    pub RITC: FedRITC,
 }
 
 impl ORAGetter for Federal {}
 impl FederalClaimCodesGetter for Federal {}
+impl RITCGetter for Federal {}
 
 impl Federal {
     pub fn init(version: &Version) -> Result<Federal, Box<dyn Error>> {
         Ok(Self{
             ORA: Self::init_fed_otr(&version)?,
             CC: Self::init_fed_cc(&version)?,
+            RITC: Self::init_fed_ritc(&version)?,
         })
     }
 }
@@ -128,10 +120,12 @@ pub struct Province {
     pub prov: ProvinceKey,
     pub ORA: ORA,
     pub CC: Vec<ProvincialClaimCode>,
+    pub RITC: ProvRITC,
 }
 
 impl ORAGetter for Province {}
 impl ProvincialClaimCodesGetter for Province {}
+impl RITCGetter for Province {}
 
 impl Province {
     // Initialize Provincial Constants
@@ -140,6 +134,7 @@ impl Province {
             prov: prov.clone(),
             ORA: Self::init_prov_otr(&version, &prov)?,
             CC: Self::init_cc(&version, &prov)?,
+            RITC: Self::init_prov_ritc(&version, &prov)?,
         })
     }
 }

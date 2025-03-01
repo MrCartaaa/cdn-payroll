@@ -1,162 +1,126 @@
 //! Rates (R, V), Income Thresholds (A), and Constants (K, KP).
 
-use super::Version;
-use csv::{ReaderBuilder, StringRecord, StringRecordsIter};
-use std::error::Error;
+use super::{Version, ProvinceKey, Province, Federal};
+use csv::{ReaderBuilder, StringRecord};
+use serde::{de, Deserialize, Deserializer, Serialize};
+use std::error::Error as StdError;
+use serde_json::Value;
 
-/// Federal and Provincial Rates (R, V), Income Thresholds (A), and Constants(K, P)
-#[derive(Debug)]
-#[allow(non_snake_case)]
-pub struct IncomeThresholdAndConstants {
-    pub Federal: ITFedConst,
-    pub AB: ProvITCRB,
-    pub BC: ProvITCRB,
-    pub MB: ProvITCRB,
-    pub NB: ProvITCRB,
-    pub NL: ProvITCRB,
-    pub NS: ProvITCRB,
-    pub NT: ProvITCRB,
-    pub NU: ProvITCRB,
-    pub ON: ProvITCRB,
-    pub PE: ProvITCRB,
-    pub SK: ProvITCRB,
-    pub YT: ProvITCRB,
-}
-
-impl IncomeThresholdAndConstants {
+pub trait RITCGetter {
     /** Initialize Rates, Income Thresholds and Constants.
      */
-    pub fn init(version: &Version) -> Result<IncomeThresholdAndConstants, Box<dyn Error>> {
+    fn init_prov_ritc(version: &Version, prov: &ProvinceKey) -> Result<ProvRITC, Box<dyn StdError>> {
+        let records = <Province as RITCGetter>::init_all(&version)?;
+
+        Ok(match prov {
+            ProvinceKey::AB => get_row_from_str(&records, "AB")?,
+            ProvinceKey::BC => get_row_from_str(&records, "BC")?,
+            ProvinceKey::MB => get_row_from_str(&records, "MB")?,
+            ProvinceKey::NB => get_row_from_str(&records, "NB")?,
+            ProvinceKey::NL => get_row_from_str(&records, "NL")?,
+            ProvinceKey::NS => get_row_from_str(&records, "NS")?,
+            ProvinceKey::NT => get_row_from_str(&records, "NT")?,
+            ProvinceKey::NU => get_row_from_str(&records, "NU")?,
+            ProvinceKey::ON => get_row_from_str(&records, "ON")?,
+            ProvinceKey::PE => get_row_from_str(&records, "PE")?,
+            ProvinceKey::QC => get_row_from_str(&records, "QC")?,
+            ProvinceKey::SK => get_row_from_str(&records, "SK")?,
+            ProvinceKey::YT => get_row_from_str(&records, "YT")?,
+        })
+    }
+
+    fn init_fed_ritc(version: &Version) -> Result<FedRITC, Box<dyn StdError>> {
+        Ok(FedRITC::from_prov_ritc(get_row_from_str(&<Federal as RITCGetter>::init_all(&version)?, "Federal")?))
+    }
+
+    fn init_all(version: &Version) -> Result<Vec<ProvRITC>, Box<dyn StdError>> {
         let file_name = match version {
             Version::V2025_1 => "cra-constants/v2025_1/rtsncmtrshldcnstnt-01-25e.csv",
         };
 
         let mut rdr = ReaderBuilder::new()
-            .has_headers(false)
             .flexible(true)
             .quoting(true)
             .from_path(file_name)?;
-        let mut iter = rdr.records();
 
-        // not using headers, skip;
-        iter.next();
+        let headers = rdr.headers()?.clone();
+        let mut new_headers = vec!["fed_prov", "key"];
 
-        let itcf = Self::get_itcf_item(&mut iter);
-        let itc_ab = Self::get_itcp_item(&mut iter);
-        let itc_bc = Self::get_itcp_item(&mut iter);
-        let itc_mb = Self::get_itcp_item(&mut iter);
-        let itc_nb = Self::get_itcp_item(&mut iter);
-        let itc_nl = Self::get_itcp_item(&mut iter);
-        let itc_ns = Self::get_itcp_item(&mut iter);
-        let itc_nt = Self::get_itcp_item(&mut iter);
-        let itc_nu = Self::get_itcp_item(&mut iter);
-        let itc_on = Self::get_itcp_item(&mut iter);
-        let itc_pe = Self::get_itcp_item(&mut iter);
-        let itc_sk = Self::get_itcp_item(&mut iter);
-        let itc_yt = Self::get_itcp_item(&mut iter);
-
-        Ok(Self {
-            Federal: itcf,
-            AB: itc_ab,
-            BC: itc_bc,
-            MB: itc_mb,
-            NB: itc_nb,
-            NL: itc_nl,
-            NS: itc_ns,
-            NT: itc_nt,
-            NU: itc_nu,
-            ON: itc_on,
-            PE: itc_pe,
-            SK: itc_sk,
-            YT: itc_yt,
-        })
-    }
-
-    fn get_itcf_item<R>(iter: &mut StringRecordsIter<R>) -> ITFedConst
-    where
-        R: std::io::Read,
-    {
-        ITFedConst::new(
-            Self::get_itc_row(iter.next().unwrap().unwrap()),
-            Self::get_itc_row(iter.next().unwrap().unwrap()),
-            Self::get_itc_row(iter.next().unwrap().unwrap()),
-        )
-    }
-
-    fn get_itcp_item<R>(iter: &mut StringRecordsIter<R>) -> ProvITCRB
-    where
-        R: std::io::Read,
-    {
-        ProvITCRB::new(
-            Self::get_itc_row(iter.next().unwrap().unwrap()),
-            Self::get_itc_row(iter.next().unwrap().unwrap()),
-            Self::get_itc_row(iter.next().unwrap().unwrap()),
-        )
-    }
-
-    fn get_itc_row(rec: StringRecord) -> ITBracket {
-        ITBracket::new(
-            Self::optionf64(rec.get(2)),
-            Self::optionf64(rec.get(3)),
-            Self::optionf64(rec.get(4)),
-            Self::optionf64(rec.get(5)),
-            Self::optionf64(rec.get(6)),
-            Self::optionf64(rec.get(7)),
-            Self::optionf64(rec.get(8)),
-            Self::optionf64(rec.get(9)),
-        )
-    }
-
-    fn optionf64(col: Option<&str>) -> Option<f64> {
-        match col {
-            Some(col) => {
-                let v = col.trim().replace(",", "");
-                if v.is_empty() {
-                    return None;
-                } else {
-                    return Some(v.parse::<f64>().unwrap());
-                }
+        for (i, header) in headers.iter().enumerate() {
+            if i > 1 {
+                new_headers.push(header);
             }
-            None => None,
         }
+
+        rdr.set_headers(StringRecord::from(new_headers));
+
+
+        let mut records: Vec<CSVData> = Vec::new();
+
+        for rec in rdr.deserialize() {
+            let result: CSVData = rec?;
+            records.push(result);
+        }
+
+        if records.len() != 40 {
+            return Err(format!("Datafile corrupt. Expected 40 rows. got {} rows", records.len()).into());
+        }
+
+        Ok(handle_multiaxis(records))
     }
+
 }
 
-/// Income Threshold Brackets
-#[derive(Debug)]
-pub struct ITBracket {
-    pub first: Option<f64>,
-    pub second: Option<f64>,
-    pub third: Option<f64>,
-    pub fourth: Option<f64>,
-    pub fifth: Option<f64>,
-    pub sixth: Option<f64>,
-    pub seventh: Option<f64>,
-    pub eighth: Option<f64>,
+fn get_row_from_str(recs: &Vec<ProvRITC>, s: &str) -> Result<ProvRITC, &'static str> {
+    recs
+    .iter()
+    .filter(|otr| otr.prov == s)
+    .collect::<Vec<&ProvRITC>>()
+    .pop().ok_or_else(|| "unable to locate RITC for {s}")
+    .clone()
+    .cloned()
 }
 
-impl ITBracket {
-    fn new(
-        first: Option<f64>,
-        second: Option<f64>,
-        third: Option<f64>,
-        fourth: Option<f64>,
-        fifth: Option<f64>,
-        sixth: Option<f64>,
-        seventh: Option<f64>,
-        eighth: Option<f64>,
-    ) -> Self {
-        Self {
-            first,
-            second,
-            third,
-            fourth,
-            fifth,
-            sixth,
-            seventh,
-            eighth,
-        }
+fn handle_multiaxis(records: Vec<CSVData>) -> Vec<ProvRITC> {
+    let mut ma_recs: Vec<ProvRITC> = Vec::new();
+
+    for rec in records.clone().iter() {
+        let mut vals = handle_options(&rec);
+
+        match rec {
+            rec if rec.key == "A" => {
+                let mut ritc = ProvRITC::new_empty(rec.fed_prov.clone());
+                ritc.A.append(&mut vals);
+                ma_recs.push(ritc);
+            },
+            rec if rec.key == "V" => {
+                let rec = ma_recs.last_mut().unwrap();
+                rec.V.append(&mut vals);
+            },
+            rec if rec.key == "K" || rec.key == "KP" => {
+                let rec = ma_recs.last_mut().unwrap();
+                rec.KP.append(&mut vals);
+            },
+            _ => {},
+
+        };
     }
+    ma_recs
+}
+
+fn handle_options(rec: &CSVData) -> Vec<f64> {
+     let vec = vec![
+        rec.first,
+        rec.second,
+        rec.third,
+        rec.fourth,
+        rec.fifth,
+        rec.sixth,
+        rec.seventh,
+        rec.eighth,
+    ];
+    let f64_vec: Vec<f64> = vec.into_iter().filter_map(|x| x).collect();
+    f64_vec
 }
 
 /** Provincial Income Threshold Constant, Rate and Bracket
@@ -169,18 +133,23 @@ impl ITBracket {
 *
 *   KP: Provincial or territorial constant
 */
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[allow(non_snake_case)]
-pub struct ProvITCRB {
-    pub A: ITBracket,
-    pub V: ITBracket,
-    pub KP: ITBracket,
+pub struct ProvRITC {
+    prov: String,
+    pub A: Vec<f64>,
+    pub V: Vec<f64>,
+    pub KP: Vec<f64>,
 }
 
-impl ProvITCRB {
-    #[allow(non_snake_case)]
-    fn new(A: ITBracket, V: ITBracket, KP: ITBracket) -> Self {
-        Self { A, V, KP }
+impl ProvRITC {
+    fn new_empty(prov: String) -> Self {
+        Self {
+            prov,
+            A: Vec::new(),
+            V: Vec::new(),
+            KP: Vec::new(),
+        }
     }
 }
 
@@ -196,17 +165,60 @@ impl ProvITCRB {
 */
 #[derive(Debug)]
 #[allow(non_snake_case)]
-pub struct ITFedConst {
-    pub A: ITBracket,
-    pub V: ITBracket,
-    pub K: ITBracket,
+pub struct FedRITC {
+    pub A: Vec<f64>,
+    pub V: Vec<f64>,
+    pub K: Vec<f64>,
 }
 
-impl ITFedConst {
-    #[allow(non_snake_case)]
-    fn new(A: ITBracket, V: ITBracket, K: ITBracket) -> Self {
-        Self { A, V, K }
+impl FedRITC {
+    fn from_prov_ritc(prov_ritc: ProvRITC) -> Self {
+        Self {
+            A: prov_ritc.A,
+            V: prov_ritc.V,
+            K: prov_ritc.KP,
+        }
     }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+struct CSVData {
+    fed_prov: String,
+    key: String,
+    #[serde(deserialize_with = "quoted_f64", rename = "1st")]
+    first: Option<f64>,
+    #[serde(deserialize_with = "quoted_f64", rename = "2nd")]
+    second: Option<f64>,
+    #[serde(deserialize_with = "quoted_f64", rename = "3rd")]
+    third: Option<f64>,
+    #[serde(deserialize_with = "quoted_f64", rename = "4th")]
+    fourth: Option<f64>,
+    #[serde(deserialize_with = "quoted_f64", rename = "5th")]
+    fifth: Option<f64>,
+    #[serde(deserialize_with = "quoted_f64", rename = "6th")]
+    sixth: Option<f64>,
+    #[serde(deserialize_with = "quoted_f64", rename = "7th")]
+    seventh: Option<f64>,
+    #[serde(deserialize_with = "quoted_f64", rename = "8th")]
+    eighth: Option<f64>,
+}
+fn quoted_f64<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Option<f64>, D::Error> {
+    Ok(match Deserialize::deserialize(deserializer)? {
+        Value::String(s) => {
+            let v = s.trim().replace(",", "").replace("-", "");
+            if v.is_empty() {
+                return Ok(None);
+            }
+            let val = v.parse::<f64>();
+            if val.is_ok() {
+                return Ok(Some(val.unwrap()));
+            } else {
+                return Ok(None);
+            }
+        }
+        Value::Number(n) => n.as_f64(),
+        _ => return Err(de::Error::custom("Wrong type, expected quoted f64.")),
+    })
 }
 
 #[cfg(test)]
@@ -215,12 +227,14 @@ mod test {
 
     #[test]
     fn test_init_itc() {
-        let result = IncomeThresholdAndConstants::init(&Version::V2025_1);
+        struct ITC {}
+        impl RITCGetter for ITC {}
+        let result = ITC::init_all(&Version::V2025_1);
         assert!(result.is_ok());
         let itc = result.unwrap();
 
-        assert_eq!(itc.Federal.A.second, Some(57375.0));
-        assert_eq!(itc.ON.V.second, Some(0.0915));
-        assert_eq!(itc.NT.KP.eighth, None);
+        assert_eq!(itc[0].A[1], 57375.0);
+        assert_eq!(itc[9].V[1], 0.0915);
+        assert_eq!(itc[7].KP.get(7), None);
     }
 }

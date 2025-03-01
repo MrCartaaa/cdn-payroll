@@ -22,17 +22,17 @@ use crate::utils;
 *   NI = A + HD
 */
 #[allow(non_snake_case)]
-pub fn BPAF(ctx: Context, A: f64, HD: f64) -> f64 {
+pub fn BPAF(ctx: Context, A: &f64, HD: &f64) -> f64 {
     let BPAF: f64;
     let NI = A + HD;
 
-    let income_threshold_4 = ctx.ITC.Federal.A.fourth.unwrap();
-    let income_threshold_5 = ctx.ITC.Federal.A.fifth.unwrap();
+    let income_threshold_4 = ctx.fed.RITC.A.get(3).unwrap();
+    let income_threshold_5 = ctx.fed.RITC.A.get(4).unwrap();
 
-    if NI <= income_threshold_4 {
+    if &NI <= income_threshold_4 {
         BPAF = context::MINIMUM_BASIC_AMT;
-    } else if income_threshold_4 < NI && NI < income_threshold_5 {
-        BPAF = context::MINIMUM_BASIC_AMT - (NI * -income_threshold_5) * (1591.0 / 75532.0);
+    } else if income_threshold_4 < &NI && &NI < income_threshold_5 {
+        BPAF = context::MINIMUM_BASIC_AMT - (&NI * -income_threshold_5) * (1591.0 / 75532.0);
     } else
     // if NI > income_threshold_5
     {
@@ -165,7 +165,7 @@ mod tests {
     fn test_BPAF_minimum_amt() {
         let ctx = Context::new(Version::V2025_1, ProvinceKey::ON);
         assert!(ctx.is_ok());
-        let result = BPAF(ctx.unwrap(), 10000.0, 0.0);
+        let result = BPAF(ctx.unwrap(), &10000.0, &0.0);
         assert_eq!(result, context::MINIMUM_BASIC_AMT);
     }
 
@@ -174,7 +174,7 @@ mod tests {
     fn test_BPAF_maximum_amt() {
         let ctx = Context::new(Version::V2025_1, ProvinceKey::ON);
         assert!(ctx.is_ok());
-        let result = BPAF(ctx.unwrap(), 253414.01, 0.0);
+        let result = BPAF(ctx.unwrap(), &253414.01, &0.0);
         assert_eq!(result, context::MAXIMUM_BASIC_AMT);
     }
 }

@@ -86,7 +86,7 @@ pub trait ORAGetter {
         }
 
         if records.len() != 20 {
-            return Err("Datafile corrrupt. Expected 17 rows.".into());
+            return Err("Datafile corrrupt. Expected 20 rows.".into());
         }
 
         Ok(handle_multiaxis(records))
