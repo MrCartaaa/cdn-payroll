@@ -1,19 +1,19 @@
 //! Rates (R, V), Income Thresholds (A), and Constants (K, KP).
 
-use super::{Federal, Province, ProvinceKey, Version};
+use super::{ProvinceKey, Version};
 use csv::{ReaderBuilder, StringRecord};
 use serde::{de, Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 use std::error::Error as StdError;
 
-pub trait RITCGetter {
+pub trait ProvRITCGetter {
     /** Initialize Rates, Income Thresholds and Constants.
      */
-    fn init_prov_ritc(
+    fn init_ritc(
         version: &Version,
         prov: &ProvinceKey,
     ) -> Result<ProvRITC, Box<dyn StdError>> {
-        let records = <Province as RITCGetter>::init_all(&version)?;
+        let records = init_all(&version)?;
 
         Ok(match prov {
             ProvinceKey::AB => get_row_from_str(&records, "AB")?,
@@ -31,52 +31,54 @@ pub trait RITCGetter {
             ProvinceKey::YT => get_row_from_str(&records, "YT")?,
         })
     }
+}
 
-    fn init_fed_ritc(version: &Version) -> Result<FedRITC, Box<dyn StdError>> {
+pub trait FedRITCGetter {
+    fn init_ritc(version: &Version) -> Result<FedRITC, Box<dyn StdError>> {
         Ok(FedRITC::from_prov_ritc(get_row_from_str(
-            &<Federal as RITCGetter>::init_all(&version)?,
+            &init_all(&version)?,
             "Federal",
         )?))
     }
+}
 
-    fn init_all(version: &Version) -> Result<Vec<ProvRITC>, Box<dyn StdError>> {
-        let file_name = match version {
-            Version::V2025_1 => "cra-constants/v2025_1/rtsncmtrshldcnstnt-01-25e.csv",
-        };
+fn init_all(version: &Version) -> Result<Vec<ProvRITC>, Box<dyn StdError>> {
+    let file_name = match version {
+        Version::V2025_1 => "cra-constants/v2025_1/rtsncmtrshldcnstnt-01-25e.csv",
+    };
 
-        let mut rdr = ReaderBuilder::new()
-            .flexible(true)
-            .quoting(true)
-            .from_path(file_name)?;
+    let mut rdr = ReaderBuilder::new()
+        .flexible(true)
+        .quoting(true)
+        .from_path(file_name)?;
 
-        let headers = rdr.headers()?.clone();
-        let mut new_headers = vec!["fed_prov", "key"];
+    let headers = rdr.headers()?.clone();
+    let mut new_headers = vec!["fed_prov", "key"];
 
-        for (i, header) in headers.iter().enumerate() {
-            if i > 1 {
-                new_headers.push(header);
-            }
+    for (i, header) in headers.iter().enumerate() {
+        if i > 1 {
+            new_headers.push(header);
         }
-
-        rdr.set_headers(StringRecord::from(new_headers));
-
-        let mut records: Vec<CSVData> = Vec::new();
-
-        for rec in rdr.deserialize() {
-            let result: CSVData = rec?;
-            records.push(result);
-        }
-
-        if records.len() != 40 {
-            return Err(format!(
-                "Datafile corrupt. Expected 40 rows. got {} rows",
-                records.len()
-            )
-            .into());
-        }
-
-        Ok(handle_multiaxis(records))
     }
+
+    rdr.set_headers(StringRecord::from(new_headers));
+
+    let mut records: Vec<CSVData> = Vec::new();
+
+    for rec in rdr.deserialize() {
+        let result: CSVData = rec?;
+        records.push(result);
+    }
+
+    if records.len() != 40 {
+        return Err(format!(
+            "Datafile corrupt. Expected 40 rows. got {} rows",
+            records.len()
+        )
+        .into());
+    }
+
+    Ok(handle_multiaxis(records))
 }
 
 fn get_row_from_str(recs: &Vec<ProvRITC>, s: &str) -> Result<ProvRITC, &'static str> {
@@ -234,9 +236,7 @@ mod test {
 
     #[test]
     fn test_init_itc() {
-        struct ITC {}
-        impl RITCGetter for ITC {}
-        let result = ITC::init_all(&Version::V2025_1);
+        let result = init_all(&Version::V2025_1);
         assert!(result.is_ok());
         let itc = result.unwrap();
 

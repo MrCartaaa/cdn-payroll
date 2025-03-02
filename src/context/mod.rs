@@ -98,16 +98,16 @@ pub struct Federal {
     pub RITC: FedRITC,
 }
 
-impl ORAGetter for Federal {}
+impl FedORAGetter for Federal {}
 impl FederalClaimCodesGetter for Federal {}
-impl RITCGetter for Federal {}
+impl FedRITCGetter for Federal {}
 
 impl Federal {
     pub fn init(version: &Version) -> Result<Federal, Box<dyn Error>> {
         Ok(Self {
-            ORA: Self::init_fed_otr(&version)?,
-            CC: Self::init_fed_cc(&version)?,
-            RITC: Self::init_fed_ritc(&version)?,
+            ORA: Self::init_otr(&version)?,
+            CC: Self::init_cc(&version)?,
+            RITC: Self::init_ritc(&version)?,
         })
     }
 }
@@ -122,18 +122,18 @@ pub struct Province {
     pub RITC: ProvRITC,
 }
 
-impl ORAGetter for Province {}
+impl ProvORAGetter for Province {}
 impl ProvincialClaimCodesGetter for Province {}
-impl RITCGetter for Province {}
+impl ProvRITCGetter for Province {}
 
 impl Province {
     // Initialize Provincial Constants
     pub fn init(version: &Version, prov: ProvinceKey) -> Result<Province, Box<dyn Error>> {
         Ok(Self {
             prov: prov.clone(),
-            ORA: Self::init_prov_otr(&version, &prov)?,
+            ORA: Self::init_otr(&version, &prov)?,
             CC: Self::init_cc(&version, &prov)?,
-            RITC: Self::init_prov_ritc(&version, &prov)?,
+            RITC: Self::init_ritc(&version, &prov)?,
         })
     }
 }

@@ -4,7 +4,7 @@ use encoding_rs::UTF_8;
 use std::collections::BTreeSet;
 use std::fs::File;
 
-use super::{Federal, Province, ProvinceKey, Version};
+use super::{ProvinceKey, Version};
 use csv::{ReaderBuilder, StringRecord};
 use encoding_rs_io::DecodeReaderBytesBuilder;
 use serde::{de, Deserialize, Deserializer, Serialize};
@@ -19,10 +19,10 @@ pub struct OtherRatesAndAmounts {
     pub notCA: ORA,
 }
 
-pub trait ORAGetter {
+pub trait ProvORAGetter {
     /// Initialize Provincial Other Rates and Amounts
-    fn init_prov_otr(version: &Version, prov: &ProvinceKey) -> Result<ORA, Box<dyn StdError>> {
-        let records = <Province as ORAGetter>::init_all(&version)?;
+    fn init_otr(version: &Version, prov: &ProvinceKey) -> Result<ORA, Box<dyn StdError>> {
+        let records = init_all(&version)?;
 
         Ok(match prov {
             ProvinceKey::AB => get_row_from_str(&records, "AB")?,
@@ -40,56 +40,57 @@ pub trait ORAGetter {
             ProvinceKey::YT => get_row_from_str(&records, "YT")?,
         })
     }
+}
 
+pub trait FedORAGetter {
     /// Initialize Federal Other Rates and Amounts
-    fn init_fed_otr(version: &Version) -> Result<OtherRatesAndAmounts, Box<dyn StdError>> {
-        let recs = <Federal as ORAGetter>::init_all(version)?;
+    fn init_otr(version: &Version) -> Result<OtherRatesAndAmounts, Box<dyn StdError>> {
+        let recs = init_all(version)?;
         Ok(OtherRatesAndAmounts {
             Federal: get_row_from_str(&recs, "Federal")?,
             notCA: get_row_from_str(&recs, "Outside Canada")?,
         })
     }
+}
 
-    /// Initialize all Other Rates and Amounts
-    fn init_all(version: &Version) -> Result<Vec<ORA>, Box<dyn StdError>> {
-        let file_name = match version {
-            Version::V2025_1 => "cra-constants/v2025_1/thrrtsmnts-01-25e.csv",
-        };
+fn init_all(version: &Version) -> Result<Vec<ORA>, Box<dyn StdError>> {
+    let file_name = match version {
+        Version::V2025_1 => "cra-constants/v2025_1/thrrtsmnts-01-25e.csv",
+    };
 
-        let file = File::open(file_name)?;
-        let trscd = DecodeReaderBytesBuilder::new()
-            .encoding(Some(UTF_8))
-            .build(file);
+    let file = File::open(file_name)?;
+    let trscd = DecodeReaderBytesBuilder::new()
+        .encoding(Some(UTF_8))
+        .build(file);
 
-        let mut rdr = ReaderBuilder::new()
-            .flexible(true)
-            .quoting(true)
-            .from_reader(trscd);
+    let mut rdr = ReaderBuilder::new()
+        .flexible(true)
+        .quoting(true)
+        .from_reader(trscd);
 
-        let headers = rdr.headers()?.clone();
-        let mut new_headers = vec!["fed_prov"];
+    let headers = rdr.headers()?.clone();
+    let mut new_headers = vec!["fed_prov"];
 
-        for (i, header) in headers.iter().enumerate() {
-            if i > 0 {
-                new_headers.push(header);
-            }
+    for (i, header) in headers.iter().enumerate() {
+        if i > 0 {
+            new_headers.push(header);
         }
-
-        rdr.set_headers(StringRecord::from(new_headers));
-
-        let mut records: Vec<ORA> = Vec::new();
-
-        for result in rdr.deserialize() {
-            let rec: ORA = result?;
-            records.push(rec.clone());
-        }
-
-        if records.len() != 20 {
-            return Err("Datafile corrrupt. Expected 20 rows.".into());
-        }
-
-        Ok(handle_multiaxis(records))
     }
+
+    rdr.set_headers(StringRecord::from(new_headers));
+
+    let mut records: Vec<ORA> = Vec::new();
+
+    for result in rdr.deserialize() {
+        let rec: ORA = result?;
+        records.push(rec.clone());
+    }
+
+    if records.len() != 20 {
+        return Err("Datafile corrrupt. Expected 20 rows.".into());
+    }
+
+    Ok(handle_multiaxis(records))
 }
 
 fn get_row_from_str(recs: &Vec<ORA>, s: &str) -> Result<ORA, &'static str> {
@@ -343,10 +344,7 @@ mod tests {
 
     #[test]
     fn test_init_other_rates_and_amounts() {
-        struct ORA {}
-        impl ORAGetter for ORA {}
-
-        let result = ORA::init_all(&Version::V2025_1);
+        let result = init_all(&Version::V2025_1);
         assert!(&result.is_ok());
         let otr_recs = result.unwrap();
         assert_eq!(
