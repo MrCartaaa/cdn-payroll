@@ -235,6 +235,24 @@ pub struct ORA {
     #[serde(deserialize_with = "quoted_f64", rename = "Surtax")]
     pub Surtax: Option<f64>,
 }
+
+impl ORA {
+
+    pub fn get_basic_amount_value(&self) -> Result<f64, Box<dyn StdError>> {
+        let bamt = &self.BasicAmt;
+
+        Ok(match bamt {
+            None => 0.0,
+            Some(basic_amt) => {
+                match basic_amt {
+                    BasicAmount::BasicAmt(x) => x.to_owned(),
+                    _ => return Err("Basic Amount value for the province is not yet implemented".into())
+                }
+            }
+        })
+    }
+}
+
 fn quoted_f64<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Option<f64>, D::Error> {
     Ok(match Deserialize::deserialize(deserializer)? {
         Value::String(s) => {

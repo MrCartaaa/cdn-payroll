@@ -18,8 +18,7 @@ use crate::utils;
 * use cdn_payroll::context::{Context, Version, ProvinceKey};
 * use cdn_payroll::provincial_income_tax::ontario::V1;
 *
-* let result = Context::new(Version::V2025_1, ProvinceKey::ON, 16129.0, 52, 51, 12, 0, None, None,
-* None, None, None, false, None, None);
+* let result = Context::new(Version::V2025_1, ProvinceKey::ON, None);
 * assert!(result.is_ok());
 *
 * let ctx = result.unwrap();
@@ -42,7 +41,7 @@ use crate::utils;
 */
 #[allow(non_snake_case)]
 pub fn V1(ctx: &Context, T4: &f64) -> Result<f64, &'static str> {
-    let ctx_ora_on = &ctx.tax_constants.prov.ORA;
+    let ctx_ora_on = &ctx.tax_consts.prov.ORA;
 
     let t4atv1 = &ctx_ora_on
         .T4atV1
@@ -89,8 +88,7 @@ pub fn V1(ctx: &Context, T4: &f64) -> Result<f64, &'static str> {
 * use cdn_payroll::context::{Context, Version, ProvinceKey};
 * use cdn_payroll::provincial_income_tax::ontario::V2;
 *
-* let result = Context::new(Version::V2025_1, ProvinceKey::ON, 16129.0, 52, 51, 12, 0, None, None,
-* None, None, None, false, None, None);
+* let result = Context::new(Version::V2025_1, ProvinceKey::ON, None);
 * assert!(result.is_ok());
 *
 * let ctx = result.unwrap();
@@ -115,7 +113,7 @@ pub fn V1(ctx: &Context, T4: &f64) -> Result<f64, &'static str> {
 #[allow(non_snake_case)]
 pub fn V2(ctx: &Context, A: &f64) -> Result<f64, &'static str> {
     let mut v2: f64 = 0.0;
-    let ctx_ora_on = &ctx.tax_constants.prov.ORA;
+    let ctx_ora_on = &ctx.tax_consts.prov.ORA;
     let aatv2 = &ctx_ora_on
         .AatV2
         .as_ref()
@@ -176,8 +174,7 @@ pub fn V2(ctx: &Context, A: &f64) -> Result<f64, &'static str> {
 * use cdn_payroll::context::{Context, Version, ProvinceKey};
 * use cdn_payroll::provincial_income_tax::ontario::{V1, S};
 *
-* let result = Context::new(Version::V2025_1, ProvinceKey::ON, 16129.0, 52, 51, 12, 0, None, None,
-* None, None, None, false, None, None);
+* let result = Context::new(Version::V2025_1, ProvinceKey::ON, None);
 * assert!(result.is_ok());
 *
 * let ctx = result.unwrap();
@@ -199,7 +196,7 @@ pub fn V2(ctx: &Context, A: &f64) -> Result<f64, &'static str> {
 */
 #[allow(non_snake_case)]
 pub fn S(ctx: &Context, T4: &f64, V1: &f64, Y: Option<&f64>) -> Result<f64, &'static str> {
-    let s2 = &ctx.tax_constants.prov.ORA.S2.ok_or_else(|| "unable to locate S2.")?;
+    let s2 = &ctx.tax_consts.prov.ORA.S2.ok_or_else(|| "unable to locate S2.")?;
     let y = match Y {
         Some(y) => y,
         None => &0.0,
@@ -241,10 +238,9 @@ pub fn S(ctx: &Context, T4: &f64, V1: &f64, Y: Option<&f64>) -> Result<f64, &'st
 * ### Example:
 * ```
 *   use cdn_payroll::provincial_income_tax::ontario::Y;
-*   use cdn_payroll::context::{Context, Version, ProvinceKey};
+*   use cdn_payroll::context::{Context, Version, ProvinceKey, TaxPayerVariables};
 *
-* let r = Context::new(Version::V2025_1, ProvinceKey::ON, 16129.0, 52, 51, 12, 0, None, None,
-* None, None, None, false, None, None);
+* let r = Context::new(Version::V2025_1, ProvinceKey::ON, None);
 *   assert!(r.is_ok());
 *
 *   let ctx = r.unwrap();
@@ -262,7 +258,7 @@ pub fn Y(
     number_of_disabled_dependants: &i64,
     number_if_minor_dependents: &i64,
 ) -> Result<f64, &'static str> {
-    let ora_on = &ctx.tax_constants.prov.ORA;
+    let ora_on = &ctx.tax_consts.prov.ORA;
     let y_factor = &ora_on.YFactor.ok_or_else(|| "unable to locate Y factor.")?;
 
     Ok(y_factor * &(*number_of_disabled_dependants as f64)
