@@ -1,7 +1,7 @@
 //! # Annual Basic Provincial or Territorial Tax
 
 use crate::context;
-use crate::context::Context;
+use crate::context::TaxConstants;
 use crate::utils;
 
 /** ## Annual basic provincial or territorial tax
@@ -28,7 +28,7 @@ use crate::utils;
 */
 #[allow(non_snake_case)]
 pub fn T4(
-    ctx: &Context,
+    tax: &TaxConstants,
     V: &f64,
     A: &f64,
     KP: &f64,

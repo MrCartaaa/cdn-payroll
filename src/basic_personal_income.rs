@@ -3,7 +3,7 @@
 //! It's important to note that the BPA is adjusted annually due to inflation and government policy.
 
 use crate::context;
-use crate::context::Context;
+use crate::context::TaxConstants;
 use crate::utils;
 
 /** Calculate Federal Basic Personal Amount.
@@ -22,7 +22,7 @@ use crate::utils;
 *   NI = A + HD
 */
 #[allow(non_snake_case)]
-pub fn BPAF(ctx: Context, A: &f64, HD: &f64) -> f64 {
+pub fn BPAF(ctx: TaxConstants, A: &f64, HD: &f64) -> f64 {
     let BPAF: f64;
     let NI = A + HD;
 
@@ -163,7 +163,7 @@ mod tests {
     #[test]
     #[allow(non_snake_case)]
     fn test_BPAF_minimum_amt() {
-        let ctx = Context::new(Version::V2025_1, ProvinceKey::ON);
+        let ctx = TaxConstants::new(Version::V2025_1, ProvinceKey::ON);
         assert!(ctx.is_ok());
         let result = BPAF(ctx.unwrap(), &10000.0, &0.0);
         assert_eq!(result, context::MINIMUM_BASIC_AMT);
@@ -172,7 +172,7 @@ mod tests {
     #[test]
     #[allow(non_snake_case)]
     fn test_BPAF_maximum_amt() {
-        let ctx = Context::new(Version::V2025_1, ProvinceKey::ON);
+        let ctx = TaxConstants::new(Version::V2025_1, ProvinceKey::ON);
         assert!(ctx.is_ok());
         let result = BPAF(ctx.unwrap(), &253414.01, &0.0);
         assert_eq!(result, context::MAXIMUM_BASIC_AMT);
