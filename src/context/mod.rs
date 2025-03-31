@@ -16,10 +16,7 @@ pub mod other_rates_and_amounts;
 
 use std::error::Error;
 
-use canada_pension_plan::base_cpp_rates_and_amounts::*;
-use canada_pension_plan::cpp_contribution_rates_and_amounts::*;
-use canada_pension_plan::first_additional_cpp_rates_and_amounts::*;
-use canada_pension_plan::second_additional_cpp_rates_and_amounts::*;
+use canada_pension_plan::*;
 use claim_codes::federal_claim_codes::*;
 use claim_codes::provincial_claim_codes::*;
 use ei_rates_and_amounts::*;
@@ -37,7 +34,7 @@ pub struct Context {
     pub prov: Province,
     pub fed: Federal,
     pub CPP: CPPCtx,
-    pub EIContRate: EmploymentInsuranceRatesAndAmounts,
+    pub EIContRate: EI_RA,
 }
 
 impl Context {
@@ -45,41 +42,24 @@ impl Context {
      */
     #[allow(non_snake_case)]
     pub fn new(version: Version, province: ProvinceKey) -> Result<Self, Box<dyn Error>> {
-        let prov = Province::init(&version, province)?;
+        let prov = Province::init(&version, &province)?;
 
         let fed = Federal::init(&version)?;
 
-        let CPPContRate = CanadaPensionPlanContributionRatesAndAmounts::init(&version)?;
-        let BaseCPPRate = BaseCanadaPensionPlanRatesAndAmounts::init(&version)?;
-        let CPPFAddntlRate = FirstAdditionalCanadaPensionPlanRatesAndAmounts::init(&version)?;
-        let CPPSAddntlRate = SecondAdditionalCanadaPensionPlanRatesAndAmounts::init(&version)?;
+        let EIContRate = EI_RA::init(&version, &province)?;
 
-        let EIContRate = EmploymentInsuranceRatesAndAmounts::init(&version)?;
+        let CPP = CPPCtx::new(&version, &province)?;
 
         Ok(Self {
             version,
             fed,
             prov,
-            CPP: CPPCtx {
-                CPPContRate,
-                BaseCPPRate,
-                CPPFAddntlRate,
-                CPPSAddntlRate,
-            },
+            CPP,
             EIContRate,
         })
     }
 }
 
-/// Context for CPP Constants
-#[derive(Debug)]
-#[allow(non_snake_case)]
-pub struct CPPCtx {
-    pub CPPContRate: CanadaPensionPlanContributionRatesAndAmounts,
-    pub BaseCPPRate: BaseCanadaPensionPlanRatesAndAmounts,
-    pub CPPFAddntlRate: FirstAdditionalCanadaPensionPlanRatesAndAmounts,
-    pub CPPSAddntlRate: SecondAdditionalCanadaPensionPlanRatesAndAmounts,
-}
 
 /// Context Version
 ///
@@ -128,9 +108,9 @@ impl ProvRITCGetter for Province {}
 
 impl Province {
     // Initialize Provincial Constants
-    pub fn init(version: &Version, prov: ProvinceKey) -> Result<Province, Box<dyn Error>> {
+    pub fn init(version: &Version, prov: &ProvinceKey) -> Result<Province, Box<dyn Error>> {
         Ok(Self {
-            prov: prov.clone(),
+            prov: prov.to_owned(),
             ORA: Self::init_otr(&version, &prov)?,
             CC: Self::init_cc(&version, &prov)?,
             RITC: Self::init_ritc(&version, &prov)?,

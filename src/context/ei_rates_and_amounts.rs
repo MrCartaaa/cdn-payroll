@@ -1,32 +1,17 @@
 //! Employment Insurance Rates and Amounts as defined by the CRA.
 
-use super::Version;
+use super::{Version, ProvinceKey};
 use csv::{Error as CSVError, ReaderBuilder};
 use serde::{de, Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 use std::error::Error as StdError;
 
-/** Employment Insurance Rates and Amounts for Quebec and Non-Quebec
-* Individuals
-*
-* Where:
-*
-*   CA: Individuals living in Canada, outside of Quebec
-*
-*   QC: Individuals living in Quebec
-*/
-#[derive(Debug)]
-#[allow(non_snake_case)]
-pub struct EmploymentInsuranceRatesAndAmounts {
-    pub CA: EI_RA,
-    pub QC: EI_RA,
-}
-
-impl EmploymentInsuranceRatesAndAmounts {
-    /// Initialize Canada Pension Plan / Quebec Pension Plan Rates and Amounts.
+impl EI_RA {
+    /// Initialize Employment Insurance Rates and Amounts
     pub fn init(
         version: &Version,
-    ) -> Result<EmploymentInsuranceRatesAndAmounts, Box<dyn StdError>> {
+        prov: &ProvinceKey,
+    ) -> Result<EI_RA, Box<dyn StdError>> {
         let file_name = match version {
             Version::V2025_1 => "cra-constants/v2025_1/ei-01-25e.csv",
         };
@@ -45,17 +30,10 @@ impl EmploymentInsuranceRatesAndAmounts {
             return Err("Datafile Corrupt. expected 2 rows from {file_name}".into());
         }
 
-        #[allow(non_snake_case)]
-        if let Some(QC) = records.iter().position(|rec| rec.ei == "QC") {
-            #[allow(non_snake_case)]
-            if let Some(CA) = records.iter().position(|rec| rec.ei == "Canada except QC") {
-                return Ok(EmploymentInsuranceRatesAndAmounts {
-                    QC: records.get(QC).unwrap().clone(),
-                    CA: records.get(CA).unwrap().clone(),
-                });
-            }
-        }
-        Err("Datafile Corrupt, expected values in columns from {file_name}.".into())
+        Ok(match prov {
+            ProvinceKey::QC => records.get(records.iter().position(|rec| rec.ei == "QC").ok_or_else(|| "Datafile Corrupt. Unable to find EI Rates for QC.")?).unwrap().to_owned(),
+            _ => records.get(records.iter().position(|rec| rec.ei == "Canada except QC").ok_or_else(|| "Datafile Corrupt. Unable to find EI Rates.")?).unwrap().to_owned(),
+        })
     }
 }
 
@@ -128,12 +106,17 @@ mod test {
 
     #[test]
     fn test_init_cpp_base_rates() {
-        let result = EmploymentInsuranceRatesAndAmounts::init(&Version::V2025_1);
+        let result = EI_RA::init(&Version::V2025_1, &ProvinceKey::QC);
         assert!(result.is_ok());
 
         let eira = result.unwrap();
-        assert_eq!(eira.QC.MaxAERP, 1204.94);
-        assert_eq!(eira.CA.EE_CR, 0.0164);
-        assert_eq!(eira.QC.MaxAIE, 65700.0);
+        assert_eq!(eira.MaxAERP, 1204.94);
+        assert_eq!(eira.MaxAIE, 65700.0);
+
+        let result = EI_RA::init(&Version::V2025_1, &ProvinceKey::ON);
+        assert!(result.is_ok());
+
+        let eira = result.unwrap();
+        assert_eq!(eira.EE_CR, 0.0164);
     }
 }

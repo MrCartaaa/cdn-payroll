@@ -1,69 +1,14 @@
-//! Canada Pension Plan / Quebec Pension Plan Contribution Rates and Amounts as defined by the CRA.
+//! Total Canada Pension Plan / Quebec Pension Plan Contribution Rates and Amounts as defined by the CRA.
 
-use crate::context::Version;
+use crate::context::{ProvinceKey, Version};
 use csv::{Error as CSVError, ReaderBuilder};
 use serde::{de, Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 use std::error::Error as StdError;
 
-/** Canada Pension Plan / Quebec Pension Plan Contribution Rates and Amounts for Quebec and
-* Non-Quebec Individuals
-*
-* Where:
-*
-*   CA: Individuals living in Canada, outside of Quebec
-*
-*   QC: Individuals living in Quebec
-*/
-#[derive(Debug)]
-#[allow(non_snake_case)]
-pub struct CanadaPensionPlanContributionRatesAndAmounts {
-    pub CA: CPP_CRA,
-    pub QC: CPP_CRA,
-}
 
-impl CanadaPensionPlanContributionRatesAndAmounts {
-    /** Initialize Canada Pension Plan / Quebec Pension Plan Contribution Rates and Amounts.
-     */
-    pub fn init(
-        version: &Version,
-    ) -> Result<CanadaPensionPlanContributionRatesAndAmounts, Box<dyn StdError>> {
-        let file_name = match version {
-            Version::V2025_1 => "cra-constants/v2025_1/cpp-qpp-ttl-01-25e.csv",
-        };
 
-        let rdr = ReaderBuilder::new().from_path(file_name)?;
-        let mut records: Vec<CPP_CRA> = Vec::new();
-
-        for result in rdr.into_deserialize() {
-            let rec: Result<CPP_CRA, CSVError> = result;
-            if rec.is_ok() {
-                records.push(rec.unwrap().clone());
-            }
-        }
-
-        if records.len() != 2 {
-            return Err("Datafile Corrupt. expected 2 rows from {file_name}".into());
-        }
-
-        #[allow(non_snake_case)]
-        if let Some(QC) = records.iter().position(|rec| rec.pp == "QPP (QC)") {
-            #[allow(non_snake_case)]
-            if let Some(CA) = records
-                .iter()
-                .position(|rec| rec.pp == "CPP (Canada except QC)")
-            {
-                return Ok(CanadaPensionPlanContributionRatesAndAmounts {
-                    QC: records.get(QC).unwrap().clone(),
-                    CA: records.get(CA).unwrap().clone(),
-                });
-            }
-        }
-        Err("Datafile Corrupt, expected values in columns from {file_name}.".into())
-    }
-}
-
-/** Canada Pension Plan Contribution Rate Amounts
+/** Total Canada Pension Plan Contribution Rate Amounts
 *
 * Where:
 *
@@ -82,7 +27,7 @@ impl CanadaPensionPlanContributionRatesAndAmounts {
 #[allow(non_snake_case)]
 #[allow(non_camel_case_types)]
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct CPP_CRA {
+pub struct TtlCPP_CRA {
     #[serde(rename = "CPP/QPP")]
     pp: String,
     #[serde(
@@ -99,7 +44,7 @@ pub struct CPP_CRA {
     pub YMCE: f64,
     #[serde(
         deserialize_with = "quoted_f64",
-        rename = "Base Employee and Employer Contribution Rate"
+        rename = "Base Employee and Employer Total Contribution Rate"
     )]
     pub EE_ER_TtlContRate: f64,
     #[serde(
@@ -133,18 +78,55 @@ fn quoted_f64<'de, D: Deserializer<'de>>(deserializer: D) -> Result<f64, D::Erro
         _ => return Err(de::Error::custom("Wrong type, expected quoted f64.")),
     })
 }
+impl TtlCPP_CRA {
+    /** Initialize Total Canada Pension Plan / Quebec Pension Plan Contribution Rates and Amounts.
+     */
+    pub fn init(
+        version: &Version,
+        prov: &ProvinceKey,
+) -> Result<Self, Box<dyn StdError>> {
+        let file_name = match version {
+            Version::V2025_1 => "cra-constants/v2025_1/cpp-qpp-ttl-01-25e.csv",
+        };
 
+        let rdr = ReaderBuilder::new().from_path(file_name)?;
+        let mut records: Vec<TtlCPP_CRA> = Vec::new();
+
+        for result in rdr.into_deserialize() {
+            let rec: Result<TtlCPP_CRA, CSVError> = result;
+            if rec.is_ok() {
+                records.push(rec.unwrap().clone());
+            }
+        }
+
+        if records.len() != 2 {
+            return Err("Datafile Corrupt. expected 2 rows from {file_name}".into());
+        }
+
+        Ok(match &prov {
+            // TODO: I dont like how this is written
+            ProvinceKey::QC => records.get(records.iter().position(|rec| rec.pp == "QPP (QC)").ok_or_else(|| "Datafile Corrupt. unable to find QC Total CPP Contributions details.")?).unwrap().clone(),
+            _ => records.get(records.iter().position(|rec| rec.pp == "CPP (Canada except QC)").ok_or_else(|| "Datafile Corrupt. unable to find Canada CPP Contribution details.")?).unwrap().clone(),
+        })
+    }
+}
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn test_init_cpp_const_rates() {
-        let result = CanadaPensionPlanContributionRatesAndAmounts::init(&Version::V2025_1);
+        let result = TtlCPP_CRA::init(&Version::V2025_1, &ProvinceKey::ON);
         assert!(result.is_ok());
 
         let cppcr = result.unwrap();
-        assert_eq!(cppcr.CA.MaxEE_ER_TtlCont, 4034.1);
-        assert_eq!(cppcr.QC.YMPE, 71300.0);
+        assert_eq!(cppcr.MaxEE_ER_TtlCont, 4034.1);
+        assert_eq!(cppcr.EE_ER_TtlContRate, 0.0595);
+
+        let result = TtlCPP_CRA::init(&Version::V2025_1, &ProvinceKey::QC);
+        assert!(result.is_ok());
+        let qc_cppcr = result.unwrap();
+
+        assert_eq!(qc_cppcr.YMPE, 71300.0);
     }
 }

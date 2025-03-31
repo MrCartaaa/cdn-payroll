@@ -9,10 +9,7 @@ use std::error::Error as StdError;
 pub trait ProvRITCGetter {
     /** Initialize Rates, Income Thresholds and Constants.
      */
-    fn init_ritc(
-        version: &Version,
-        prov: &ProvinceKey,
-    ) -> Result<ProvRITC, Box<dyn StdError>> {
+    fn init_ritc(version: &Version, prov: &ProvinceKey) -> Result<ProvRITC, Box<dyn StdError>> {
         let records = init_all(&version)?;
 
         Ok(match prov {

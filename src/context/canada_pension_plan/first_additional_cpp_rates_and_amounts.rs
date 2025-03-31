@@ -1,32 +1,18 @@
 //! First Additional Canada Pension Plan / Quebec Pension Plan Rates and Amounts as defined by the CRA.
 
-use crate::context::Version;
+use crate::context::{ProvinceKey, Version};
 use csv::{Error as CSVError, ReaderBuilder};
 use serde::{de, Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 use std::error::Error as StdError;
 
-/** First Additional Canada Pension Plan / Quebec Pension Plan Rates and Amounts for Quebec and Non-Quebec
-* Individuals
-*
-* Where:
-*
-*   CA: Individuals living in Canada, outside of Quebec
-*
-*   QC: Individuals living in Quebec
-*/
-#[derive(Debug)]
-#[allow(non_snake_case)]
-pub struct FirstAdditionalCanadaPensionPlanRatesAndAmounts {
-    pub CA: FACPP_RA,
-    pub QC: FACPP_RA,
-}
 
-impl FirstAdditionalCanadaPensionPlanRatesAndAmounts {
+impl FACPP_RA {
     /// Initialize Canada Pension Plan / Quebec Pension Plan Rates and Amounts.
     pub fn init(
         version: &Version,
-    ) -> Result<FirstAdditionalCanadaPensionPlanRatesAndAmounts, Box<dyn StdError>> {
+        prov: &ProvinceKey,
+    ) -> Result<FACPP_RA, Box<dyn StdError>> {
         let file_name = match version {
             Version::V2025_1 => "cra-constants/v2025_1/cpp-qpp-addntl-01-25e.csv",
         };
@@ -45,20 +31,10 @@ impl FirstAdditionalCanadaPensionPlanRatesAndAmounts {
             return Err("Datafile Corrupt. expected 2 rows from {file_name}".into());
         }
 
-        #[allow(non_snake_case)]
-        if let Some(QC) = records.iter().position(|rec| rec.pp == "QPP (QC)") {
-            #[allow(non_snake_case)]
-            if let Some(CA) = records
-                .iter()
-                .position(|rec| rec.pp == "CPP (Canada except QC)")
-            {
-                return Ok(FirstAdditionalCanadaPensionPlanRatesAndAmounts {
-                    QC: records.get(QC).unwrap().clone(),
-                    CA: records.get(CA).unwrap().clone(),
-                });
-            }
-        }
-        Err("Datafile Corrupt, expected values in columns from {file_name}.".into())
+        Ok(match prov {
+            ProvinceKey::QC => records.get(records.iter().position(|rec| rec.pp == "QPP (QC)").ok_or_else(|| "Datafile Corrupt. Unable to find QC 1st Addtnl CPP.")?).unwrap().to_owned(),
+            _ => records.get(records.iter().position(|rec| rec.pp == "CPP (Canada except QC)").ok_or_else(|| "Datafile Corrupt. Unable to find !st Addtnl CPP.")?).unwrap().to_owned()
+        })
     }
 }
 
@@ -124,12 +100,16 @@ mod test {
 
     #[test]
     fn test_init_cpp_faddtl_rate() {
-        let result = FirstAdditionalCanadaPensionPlanRatesAndAmounts::init(&Version::V2025_1);
+        let result = FACPP_RA::init(&Version::V2025_1, &ProvinceKey::QC);
         assert!(result.is_ok());
 
         let bcppra = result.unwrap();
-        assert_eq!(bcppra.QC.YMPE, 71300.0);
-        assert_eq!(bcppra.QC.MaxEE_ER_FAddtnlCont, 678.0);
-        assert_eq!(bcppra.CA.EE_ER_FAddtnlContRate, 0.0100);
+        assert_eq!(bcppra.YMPE, 71300.0);
+        assert_eq!(bcppra.MaxEE_ER_FAddtnlCont, 678.0);
+        let result = FACPP_RA::init(&Version::V2025_1, &ProvinceKey::ON);
+        assert!(result.is_ok());
+
+        let bcppra = result.unwrap();
+        assert_eq!(bcppra.EE_ER_FAddtnlContRate, 0.0100);
     }
 }
