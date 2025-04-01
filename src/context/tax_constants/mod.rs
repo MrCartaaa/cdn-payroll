@@ -34,7 +34,7 @@ pub struct TaxConstants {
     pub prov: Province,
     pub fed: Federal,
     pub CPP: CPPCtx,
-    pub EIContRate: EI_RA,
+    pub EI: EI_RA,
 }
 
 impl TaxConstants {
@@ -46,7 +46,7 @@ impl TaxConstants {
 
         let fed = Federal::init(&version)?;
 
-        let EIContRate = EI_RA::init(&version, &province)?;
+        let EI = EI_RA::init(&version, &province)?;
 
         let CPP = CPPCtx::new(&version, &province)?;
 
@@ -55,7 +55,7 @@ impl TaxConstants {
             fed,
             prov,
             CPP,
-            EIContRate,
+            EI,
         })
     }
 }

@@ -1,7 +1,7 @@
 //! # Annual Basic Provincial or Territorial Tax
 
 use crate::context;
-use crate::context::TaxConstants;
+use crate::context::Context;
 use crate::utils;
 
 /** ## Annual basic provincial or territorial tax
@@ -28,7 +28,7 @@ use crate::utils;
 */
 #[allow(non_snake_case)]
 pub fn T4(
-    tax: &TaxConstants,
+    ctx: &Context,
     V: &f64,
     A: &f64,
     KP: &f64,
@@ -95,78 +95,89 @@ pub fn K1P(lowest_provincial_tax_rate: f64, TCP: f64) -> f64 {
     utils::round(lowest_provincial_tax_rate * TCP)
 }
 
-/** Provincial or territorial base Canada Pension Plan contributions and employment insurance premiums tax credits for the year (the lowest provincial or territorial tax rate is used to calculate this credit).
+/** ## Provincial or territorial base Canada Pension Plan contributions and employment insurance premiums tax credits for the year (the lowest provincial or territorial tax rate is used to calculate this credit).
 *
 *   If an employee reaches the maximum CPP or EI for the year with an employer, the instructions in the note for the K2 factor also apply to the K2P factor. For employees paid by commission, use the federal K2 formula for commissions and replace the lowest federal rate in the K2 formula with the lowest provincial or territorial tax rate
 *
-*  Given:
+*  ### Arguements:
 *
-*   lowest_provincial_tax_rate:
-*
-*   P: The number of pay periods in the year
-*
-*   PM: The total number of months during which CPP and/or QPP contributions are required to be deducted (used in the proration of maximum contribution).
+*   ctx: Context
 *
 *   C: Canada (or Quebec) Pension Plan contributions for the pay period
 *
 *   EI: Employment insurance premiums for the pay period
+*
+*   ### Examples:
+*       // TODO: Add examples.
 */
 #[allow(non_snake_case)]
-pub fn K2P(lowest_provincial_tax_rate: f64, P: i64, PM: i64, C: f64, EI: f64) -> f64 {
+pub fn K2P(ctx: &Context, C: f64, EI: f64) -> f64 {
     let mut k2p: f64;
 
-    let mut cpp: f64 = P as f64 * C * (0.0495 / 0.0595);
-    if cpp > context::CPP_MAX_CONTRIBUTIONS {
-        cpp = context::CPP_MAX_CONTRIBUTIONS;
-    }
-    k2p = lowest_provincial_tax_rate * (cpp * (PM / 12) as f64);
+    let bccp = ctx.tax_consts.CPP.BaseCPPRate.EE_ER_BaseContRate.to_owned();
+    let tccp = ctx.tax_consts.CPP.TtlCPP_CRA.EE_ER_TtlContRate.to_owned();
+    let max_cpp_cont = ctx.tax_consts.CPP.BaseCPPRate.MaxEE_ER_TtlCont.to_owned();
+    let ltp = ctx.tax_consts.prov.RITC.V[0];
+    let max_ei_cont = ctx.tax_consts.EI.MaxAEEP.to_owned();
 
-    let mut ei: f64 = P as f64 * EI;
-    if ei > context::EI_MAX_CONTRIBUTIONS {
-        ei = context::EI_MAX_CONTRIBUTIONS;
+    let mut cpp: f64 = ctx.payer_vars.P as f64 * C * (bccp / tccp);
+    if cpp > max_cpp_cont {
+        cpp = max_cpp_cont;
     }
-    k2p += lowest_provincial_tax_rate * ei;
+    k2p = ltp * (cpp * (ctx.payer_vars.PM.to_owned() / 12) as f64);
+
+    let mut ei: f64 = ctx.payer_vars.P.to_owned() as f64 * EI;
+    if ei > max_ei_cont {
+        ei = max_ei_cont;
+    }
+    k2p += ltp * ei;
 
     utils::round(k2p)
 }
 
-/** Provincial or territorial base Canada Pension Plan contributions and employment insurance premiums tax credits for the year (the lowest provincial or territorial tax rate is used to calculate this credit).
+/** ## Provincial or territorial base Canada Pension Plan contributions and employment insurance premiums tax credits for the year (the lowest provincial or territorial tax rate is used to calculate this credit).
 *
 *   If an employee reaches the maximum CPP or EI for the year with an employer, the instructions in the note for the K2 factor also apply to the K2P factor. For employees paid by commission, use the federal K2 formula for commissions and replace the lowest federal rate in the K2 formula with the lowest provincial or territorial tax rate
 *
 *   Uses Cumulative Average Calculation
 *
-*  Given:
+*  ### Arguements:
 *
-*   lowest_provincial_tax_rate:
-*
-*   PE: Pensionable earnings for the pay period, or the gross income plus any taxable benefits for the pay period, plus PEYTD
+*   PE: Pensionable earnings for the pay period, or the gross income plus any taxable benefits for the pay period
 *
 *   S1: Annualizing factor
 *
-*   B1: Gross bonuses, retroactive pay increases, vacation pay when vacation is not taken, accumulated overtime payments or other non-periodic payments year-to-date (before the pay period)
-*
 *   EI: Employment insurance premiums for the pay period
+*
+*   ### Examples:
+*       // TODO: Add examples.
 */
 #[allow(non_snake_case)]
-pub fn K2P_grad(lowest_provincial_tax_rate: f64, PE: i64, S1: f64, B1: f64, EI: f64) -> f64 {
+pub fn K2P_grad(ctx: &Context, PE: f64, S1: f64, EI: f64) -> f64 {
     let mut k2p: f64;
 
-    let mut cpp: f64 = (S1 * PE as f64) + B1 - 3500.0;
+    let ttl_pe = PE + ctx.payer_vars.PIytd;
+    let ttl_ei = EI + ctx.payer_vars.EIytd;
+    let bccp = ctx.tax_consts.CPP.BaseCPPRate.EE_ER_BaseContRate.to_owned();
+    let ltp = ctx.tax_consts.prov.RITC.V[0];
+    let max_cpp_cont = ctx.tax_consts.CPP.BaseCPPRate.MaxEE_ER_TtlCont.to_owned();
+    let max_ei_cont = ctx.tax_consts.EI.MaxAEEP.to_owned();
+
+    let mut cpp: f64 = (S1 * ttl_pe) + ctx.payer_vars.B1 - ctx.tax_consts.CPP.TtlCPP_CRA.BasicException;
     if cpp.is_sign_negative() {
         cpp = 0.0;
     }
-    if cpp > context::CPP_MAX_CONTRIBUTIONS {
-        cpp = context::CPP_MAX_CONTRIBUTIONS;
+    if cpp > max_cpp_cont {
+        cpp = max_cpp_cont;
     }
 
-    k2p = lowest_provincial_tax_rate * 0.0495 * cpp;
+    k2p = ltp * bccp * cpp;
 
-    let mut ei: f64 = (S1 * EI) + B1;
-    if ei > context::EI_MAX_CONTRIBUTIONS {
-        ei = context::EI_MAX_CONTRIBUTIONS;
+    let mut ei: f64 = (S1 * ttl_ei) + ctx.payer_vars.B1;
+    if ei > max_ei_cont {
+        ei = max_ei_cont;
     }
-    k2p += lowest_provincial_tax_rate * 0.0164 * ei;
+    k2p += ltp * ctx.tax_consts.EI.EE_CR * ei;
 
     utils::round(k2p)
 }

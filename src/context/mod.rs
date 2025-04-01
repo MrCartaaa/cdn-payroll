@@ -64,7 +64,17 @@ impl Context {
 *
 *   PM: The total number of months during which CPP and/or QPP contributions are required to be deducted (used in the proration of maximum contribution).
 *
-*   PE: Pensionable earnings for the pay period, or the gross income plus any taxable benefits for the pay period, plus PEYTD
+*   D: Employee’s year-to-date (before the pay period) Canada Pension Plan contribution with the employer
+*
+*   D2: Employee’s year-to-date (before the pay period) second additional Canada Pension Plan contribution with the employer
+*
+*   PEytd: Employee's year-to-date (before the pay period) pensionable earnings
+*
+*   D1: Employee’s year-to-date (before the pay period) employment insurance premium with the employer
+*
+*   EIytd: Employee's year-to-date (before the pay period) Insurable earnings
+*
+*   B1: Gross bonuses, retroactive pay increases, vacation pay when vacation is not taken, accumulated overtime payments or other non-periodic payments year-to-date (before the pay period)
 *
 *   L: Additional tax deductions for the pay period requested by the employee or pensioner as shown on Form TD1
 *
@@ -88,7 +98,12 @@ pub struct TaxPayerVariables {
     pub P: i64,
     pub PR: i64,
     pub PM: i64,
-    pub PE: i64,
+    pub D: f64,
+    pub D2: f64,
+    pub PIytd: f64,
+    pub D1: f64,
+    pub EIytd: f64,
+    pub B1: f64,
     pub L: Option<f64>,
     pub F1: Option<f64>,
     pub HD: Option<f64>,
@@ -103,14 +118,19 @@ pub struct TaxPayerVariables {
 impl TaxPayerVariables {
 
     #[allow(non_snake_case)]
-    pub fn new(TCP: f64, P: i64, PR: i64, PM: i64, PE: i64, L: Option<f64>, F1: Option<f64>, HD: Option<f64>, U1: Option<f64>, F2: Option<f64>,
+    pub fn new(TCP: f64, P: i64, PR: i64, PM: i64, D: f64, D2: f64, PIytd: f64, D1: f64, EIytd: f64, B1: f64, L: Option<f64>, F1: Option<f64>, HD: Option<f64>, U1: Option<f64>, F2: Option<f64>,
                 lives_outside_city_limits: bool, number_of_disabled_dependants: Option<i64>, number_of_minor_dependents: Option<i64>) -> Self {
         TaxPayerVariables {
             TCP,
             P,
             PR,
             PM,
-            PE,
+            D,
+            D2,
+            PIytd,
+            D1,
+            EIytd,
+            B1,
             L,
             F1,
             HD,
@@ -132,7 +152,12 @@ impl TaxPayerVariables {
             52,
             52,
             12,
-            0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
             None,
             None,
             None,
