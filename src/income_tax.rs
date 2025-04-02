@@ -1,64 +1,61 @@
-//! Formulas to calculate the estimated federal and provincial or territorial tax deductions (T) for the pay period
+//! # Formulas to calculate the estimated federal and provincial or territorial tax deductions (T) for the pay period
 
 use crate::utils;
+use crate::context::Context;
 
-/** Estimated federal and provincial or territorial tax deductions for the pay period
-*       (Non-Commissionable earnings)
+/** ## Estimated federal and provincial or territorial tax deductions for the pay period
+*   (Non-Commissionable earnings)
 *
 *
-* Given:
+* ### Arguements:
+*
+*   ctx: Context
 *
 *   T1: Annual federal tax deduction
 *
 *   T2: Annual provincial or territorial tax deduction (except Quebec)
 *
-*   P: The number of pay periods in the year
-*
-*   L: Additional tax deductions for the pay period requested by the employee or pensioner as shown on Form TD1
+* ### Examples:
+* //TODO: create examples.
 */
 #[allow(non_snake_case)]
-pub fn T(T1: f64, T2: f64, P: i64, L: f64) -> f64 {
-    utils::round(((T1 + T2) / P as f64) + L)
+pub fn T(ctx: Context, T1: f64, T2: f64)  -> f64 {
+    let l = match ctx.payer_vars.L {
+        Some(l) => l,
+        None => 0.0
+    };
+    utils::round(((T1 + T2) / ctx.payer_vars.P as f64) + l)
 }
 
-/** Estimated Federal and Provincial or Territorial Tax Deductions for the Pay Period
+/** ## Estimated Federal and Provincial or Territorial Tax Deductions for the Pay Period
 *
 *   Uses Cumulative Average Calculation
 *
-* Given:
+* ### Arguements:
+*
+*   ctx: Context
 *
 *   T1_grad: Annual federal tax deduction (Uses cumalitve average calculation)
 *
 *   T2: Annual provincial or territorial tax deduction (except Quebec)
 *
-*   M1: Year-to-date tax deducted on all payments included in B1
-*
-*   Accumulated federal and provincial (or territorial) tax deductions on non-periodic payments
-*   such as bonuses, if any, to the last pay period. Do not include any
-*   year‑to‑date extra tax deductions for the year requested by the
-*   employee, factor L or any tax included in factor M. The T factor (tax deduction for the pay
-*   period) will not include the tax on the non-periodic payment. The tax to be deducted on a
-*   current non‑periodic payment is kept in another field
-*   TB.
-*
 *   S1: Annualizing factor
 *
-*   M: Accumulated federal and provincial or territorial tax deductions (if any) to the end of the last pay period
-*
-*   Do not include any year‑to‑date extra tax deductions requested by the employee, factor L. Tax
-*   already deducted on non-periodic payments such as bonuses, is included
-*   in factor M1
-*
-*   L: Additional tax deductions for the pay period requested by the employee or pensioner as shown on Form TD1
+* ### Examples:
+* //TODO: create examples
 */
 #[allow(non_snake_case)]
-pub fn T_grad(T1_grad: f64, T2: f64, M1: f64, S1: f64, M: f64, L: f64) -> f64 {
+pub fn T_grad(ctx: Context, T1_grad: f64, T2: f64, S1: f64) -> f64 {
     let t: f64;
+    let l = match ctx.payer_vars.L {
+        Some(l) => l,
+        None => 0.0,
+    };
 
-    t = ((T1_grad + T2 - M1) / S1) - M;
+    t = ((T1_grad + T2 - ctx.payer_vars.M1) / S1) - ctx.payer_vars.M;
     if t.is_sign_negative() {
-        return L;
+        return l;
     }
 
-    utils::round(t + L)
+    utils::round(t + l)
 }

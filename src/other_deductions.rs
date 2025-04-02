@@ -39,8 +39,8 @@ pub fn C(ctx: Context, PI: f64) -> f64 {
 *   // TODO: create examples
 */
 #[allow(non_snake_case)]
-pub fn C2(PI: f64, W: f64) -> f64 {
-    let c21: f64 = ctx.tax_consts.CPP.CPPSAddtnlRate * (ctx.payer_vars.PM / 12) as f64 - ctx.payer_vars.D2;
+pub fn C2(ctx: Context, PI: f64, W: f64) -> f64 {
+    let c21: f64 = ctx.tax_consts.CPP.CPPSAddtnlRate.MaxEE_ER_SAddtnlCont * (ctx.payer_vars.PM / 12) as f64 - ctx.payer_vars.D2;
     let c22: f64 = (ctx.payer_vars.PIytd + PI - W) * ctx.tax_consts.CPP.CPPSAddtnlRate.EE_ER_SAddtnlContRate;
     let mut c2: f64;
     if c21 < c22 {

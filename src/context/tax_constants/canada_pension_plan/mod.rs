@@ -20,8 +20,8 @@ pub use second_additional_cpp_rates_and_amounts::*;
 pub struct CPPCtx {
     pub TtlCPP_CRA: TtlCPP_CRA,
     pub BaseCPPRate: BCPPRates,
-    pub CPPFAddntlRate: FACPP_RA,
-    pub CPPSAddntlRate: SACPP_RA,
+    pub CPPFAddtnlRate: FACPP_RA,
+    pub CPPSAddtnlRate: SACPP_RA,
 }
 
 impl CPPCtx {
@@ -30,13 +30,13 @@ impl CPPCtx {
     pub fn new(version: &Version, prov: &ProvinceKey) -> Result<Self, Box<dyn Error>> {
         let TtlCPP_CRA = TtlCPP_CRA::init(&version, &prov)?;
         let BaseCPPRate = BCPPRates::init(&version, &prov)?;
-        let CPPFAddntlRate = FACPP_RA::init(&version, &prov)?;
-        let CPPSAddntlRate = SACPP_RA::init(&version, &prov)?;
+        let CPPFAddtnlRate = FACPP_RA::init(&version, &prov)?;
+        let CPPSAddtnlRate = SACPP_RA::init(&version, &prov)?;
         Ok(CPPCtx {
                 TtlCPP_CRA,
                 BaseCPPRate,
-                CPPFAddntlRate,
-                CPPSAddntlRate
+                CPPFAddtnlRate,
+                CPPSAddtnlRate
             })
     }
 }

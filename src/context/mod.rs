@@ -76,6 +76,22 @@ impl Context {
 *
 *   B1: Gross bonuses, retroactive pay increases, vacation pay when vacation is not taken, accumulated overtime payments or other non-periodic payments year-to-date (before the pay period)
 *
+*   M: Accumulated federal and provincial or territorial tax deductions (if any) to the end of the last pay period
+*
+*   Do not include any year‑to‑date extra tax deductions requested by the employee, factor L. Tax
+*   already deducted on non-periodic payments such as bonuses, is included
+*   in factor M1
+*
+*   M1: Year-to-date tax deducted on all payments included in B1
+*
+*   Accumulated federal and provincial (or territorial) tax deductions on non-periodic payments
+*   such as bonuses, if any, to the last pay period. Do not include any
+*   year‑to‑date extra tax deductions for the year requested by the
+*   employee, factor L or any tax included in factor M. The T factor (tax deduction for the pay
+*   period) will not include the tax on the non-periodic payment. The tax to be deducted on a
+*   current non‑periodic payment is kept in another field
+*   TB.
+*
 *   L: Additional tax deductions for the pay period requested by the employee or pensioner as shown on Form TD1
 *
 *   F1: Annual deductions such as child care expenses and support payments requested by an employee or pensioner and authorized by a tax services office or tax centre
@@ -104,6 +120,8 @@ pub struct TaxPayerVariables {
     pub D1: f64,
     pub EIytd: f64,
     pub B1: f64,
+    pub M: f64,
+    pub M1: f64,
     pub L: Option<f64>,
     pub F1: Option<f64>,
     pub HD: Option<f64>,
@@ -118,7 +136,7 @@ pub struct TaxPayerVariables {
 impl TaxPayerVariables {
 
     #[allow(non_snake_case)]
-    pub fn new(TCP: f64, P: i64, PR: i64, PM: i64, D: f64, D2: f64, PIytd: f64, D1: f64, EIytd: f64, B1: f64, L: Option<f64>, F1: Option<f64>, HD: Option<f64>, U1: Option<f64>, F2: Option<f64>,
+    pub fn new(TCP: f64, P: i64, PR: i64, PM: i64, D: f64, D2: f64, PIytd: f64, D1: f64, EIytd: f64, B1: f64, M: f64, M1: f64, L: Option<f64>, F1: Option<f64>, HD: Option<f64>, U1: Option<f64>, F2: Option<f64>,
                 lives_outside_city_limits: bool, number_of_disabled_dependants: Option<i64>, number_of_minor_dependents: Option<i64>) -> Self {
         TaxPayerVariables {
             TCP,
@@ -131,6 +149,8 @@ impl TaxPayerVariables {
             D1,
             EIytd,
             B1,
+            M,
+            M1,
             L,
             F1,
             HD,
@@ -152,6 +172,8 @@ impl TaxPayerVariables {
             52,
             52,
             12,
+            0.0,
+            0.0,
             0.0,
             0.0,
             0.0,
