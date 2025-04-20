@@ -1,6 +1,5 @@
 //! # Annual Basic Provincial or Territorial Tax
 
-use crate::context;
 use crate::context::Context;
 use crate::utils;
 
@@ -12,29 +11,27 @@ use crate::utils;
 *
 * ### Arguements:
 *
-*   V: Provincial or territorial tax rate for the year
+*   ctx: Context
 *
 *   [A](../../basic_personal_income/fn.A.html) \[or [A_grad](../../basic_personal_income/fn.A_grad.html)\]: Annual taxable income.
-*
-*   KP: Provincial or territorial constant
 *
 *   [K2P](./fn.K2P.html) \[or [K2P_grad](./fn.K2P.html)\]: Base Canada Pension Plan contributions and employment insurance premiums federal tax credits for the year.
 *
 *   Note: If an employee has already contributed the maximum CPP and EI, for the year with the employer, use the maximum base CPP contribution and the maximum EI premium to calculate the credit for the rest of the year. If, during the pay period in which the employee reaches the maximum, the CPP and  EI, when annualized, is less than the annual maximum, use the maximum base CPP contribution and the maximum EI premium in that pay period
 *
-*   K3P: Other provincial or territorial non-refundable tax credits
-*
 *   K4P: Territorial non-refundable tax credit calculated using the provincial or territorial Canada employment amount. (currently unimplemented)
+*  TODO: There is currently no calculation for ON (ie None) once territories are implemented,
+*  we can add the links here. Looks like its just YK
+*
+*  ### Examples:
+*  TODO: add examples...
 */
 #[allow(non_snake_case)]
 pub fn T4(
     ctx: &Context,
-    V: &f64,
-    A: &f64,
-    KP: &f64,
-    K1P: &f64,
-    K2P: &f64,
-    K3P: Option<&f64>,
+    A: f64,
+    K1P: f64,
+    K2P: f64,
     K4P: Option<&f64>,
 ) -> Result<f64, &'static str> {
     let k4p = match K4P {
@@ -42,57 +39,81 @@ pub fn T4(
         None => &0.0,
     };
 
-    let k3p = match K3P {
+    let k3p = match ctx.payer_vars.K3P {
         Some(x) => x,
         None => &0.0,
     };
 
-    let t4: f64 = (V * A) - KP - K1P - K2P - k3p - k4p;
+    let mut v: f64 = ctx.tax_consts.prov.RITC.V[0].to_owned();
+    let mut kp: f64 = ctx.tax_consts.prov.RITC.KP[0].to_owned();
+    for (i, c) in ctx.tax_consts.prov.RITC.A.iter().enumerate().rev() {
+        if A > *c {
+            v = ctx.tax_consts.prov.RITC.V[i].to_owned();
+            kp = ctx.tax_consts.prov.RITC.KP[i].to_owned();
+            break;
+        };
+    }
+
+    let t4: f64 = (v * A) - kp - K1P - K2P - k3p - k4p;
     if t4 < 0.0 {
         return Ok(0.0);
     }
     Ok(utils::round(t4))
 }
 
-/** Annual provincial or territorial tax deduction (except Quebec)
+/** ## Annual provincial or territorial tax deduction (except Quebec)
 *
 *
-* Given:
+* ### Arguements:
 *
-*   T4: Annual basic provincial or territorial tax
+*   ctx: Context
 *
-*   V1: Provincial surtax calculated on the basic provincial tax (only applies to Ontario)
+*   TODO: Add other links for BC once implemented
 *
-*   V2: Additional tax calculated on taxable income (only applies to the Ontario Health Premium)
+*   [T4](./fn.T4.html): Annual basic provincial or territorial tax
 *
-*   S: Provincial tax reduction (only applies to Ontario and British Columbia)
+*   [V1](../ontario/fn.V1.html): Provincial surtax calculated on the basic provincial tax (only applies to Ontario)
 *
-*   P: The number of pay periods in the year
+*   [V2](../ontario/fn.V2.html): Additional tax calculated on taxable income (only applies to the Ontario Health Premium)
+*
+*   [S](../ontario/fn.S.html): Provincial tax reduction (only applies to Ontario and British Columbia)
 *
 *  LCP: Provincial or territorial labour-sponsored funds tax credit
+*  TODO: There is currently no calculation for ON (ie None) once other provinces are implemented,
+*  we can add the links here. LCP is a rate * investments to the employer shares, only available
+*  for SK, MB, NB, NS
+*
+*  ### Examples:
+*   TODO: add examples...
 */
 #[allow(non_snake_case)]
-pub fn T2(T4: f64, V1: f64, V2: f64, S: f64, P: i64, LCP: f64) -> f64 {
-    let t2: f64 = T4 + V1 + V2 - S - (P as f64 * LCP);
+pub fn T2(ctx: &Context, T4: f64, V1: f64, V2: f64, S: f64, LCP: Option<f64>) -> f64 {
+    let lcp = match LCP {
+        Some(x) => x,
+        None => 0.0,
+    };
+
+    let t2: f64 = T4 + V1 + V2 - S - (ctx.payer_vars.P as f64 * lcp);
     if t2 < 0.0 {
         return 0.0;
     }
     utils::round(t2)
 }
 
-/** Provincial or territorial non-refundable personal tax credit
+/** ## Provincial or territorial non-refundable personal tax credit
 *    (the lowest tax rate of the province or territory is used to calculate this credit)
 *
 *
-* Given:
+* ### Arguements:
 *
-*   lowest_provincial_tax_rate: Lowest provincial tax rate
+*   ctx: Context
 *
-*   TCP: "Total claim amount," reported on the provincial or territorial Form TD1.
+* ### Examples:
+*    TODO: add examples...
 */
 #[allow(non_snake_case)]
-pub fn K1P(lowest_provincial_tax_rate: f64, TCP: f64) -> f64 {
-    utils::round(lowest_provincial_tax_rate * TCP)
+pub fn K1P(ctx: &Context) -> f64 {
+    utils::round(&ctx.tax_consts.prov.RITC.V[0] * ctx.payer_vars.TCP)
 }
 
 /** ## Provincial or territorial base Canada Pension Plan contributions and employment insurance premiums tax credits for the year (the lowest provincial or territorial tax rate is used to calculate this credit).
@@ -143,6 +164,8 @@ pub fn K2P(ctx: &Context, C: f64, EI: f64) -> f64 {
 *
 *  ### Arguements:
 *
+*   ctx: Context
+*
 *   PE: Pensionable earnings for the pay period, or the gross income plus any taxable benefits for the pay period
 *
 *   S1: Annualizing factor
@@ -163,7 +186,8 @@ pub fn K2P_grad(ctx: &Context, PE: f64, S1: f64, EI: f64) -> f64 {
     let max_cpp_cont = ctx.tax_consts.CPP.BaseCPPRate.MaxEE_ER_TtlCont.to_owned();
     let max_ei_cont = ctx.tax_consts.EI.MaxAEEP.to_owned();
 
-    let mut cpp: f64 = (S1 * ttl_pe) + ctx.payer_vars.B1 - ctx.tax_consts.CPP.TtlCPP_CRA.BasicException;
+    let mut cpp: f64 =
+        (S1 * ttl_pe) + ctx.payer_vars.B1 - ctx.tax_consts.CPP.TtlCPP_CRA.BasicException;
     if cpp.is_sign_negative() {
         cpp = 0.0;
     }
