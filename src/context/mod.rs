@@ -43,7 +43,7 @@ impl Context {
         let pv: TaxPayerVariables;
         if payer_vars.is_none() {
             if dotenv::var("ENV").unwrap() != "PRODUCTION" {
-                pv = TaxPayerVariables::__test__(&tax_consts)?;
+                pv = TaxPayerVariables::__test__(&tax_consts, None)?;
             } else {
                 return Err("payer_vars [TaxPayerVariables] are required.".into());
             }
@@ -58,6 +58,10 @@ impl Context {
     }
 }
 /* ## Tax Payer Variables.
+*
+*   I: Gross remuneration for the pay period.
+*
+*   This includes overtime earned and paid in the same pay period, pension income, qualified pension income, and taxable benefits, but does not include bonuses, retroactive pay increases, or other non-periodic payments
 *
 *   TCP: Total Claim Amount as defined by the Provincial or territorial TD1 Form.
 *
@@ -79,6 +83,8 @@ impl Context {
 *
 *   B1: Gross bonuses, retroactive pay increases, vacation pay when vacation is not taken, accumulated overtime payments or other non-periodic payments year-to-date (before the pay period)
 *
+*  Note: For overtime earned and paid in the same pay period, the payment is included with the I factor. Also, when the employee gets vacation pay and takes vacation, the income is included in the I factor. If you want to make deductions such as RRSP contributions from the bonus payment, see the instructions in Option 1 for using factors F3 and F4.
+*
 *   M: Accumulated federal and provincial or territorial tax deductions (if any) to the end of the last pay period
 *
 *   Do not include any year‑to‑date extra tax deductions requested by the employee, factor L. Tax
@@ -95,6 +101,8 @@ impl Context {
 *   current non‑periodic payment is kept in another field
 *   TB.
 *
+*   F: Payroll deductions for the pay period for employee contributions to a registered pension plan (RPP) for current and past services, a registered retirement savings plan (RRSP), to a pooled registered pension plan (PRPP), or a retirement compensation arrangement (RCA). For tax deduction purposes, employers can deduct amounts contributed to an RPP, RRSP, PRPP, or RCA by or on behalf of an employee to determine the employee's taxable income
+*
 *   L: Additional tax deductions for the pay period requested by the employee or pensioner as shown on Form TD1
 *
 *   F1: Annual deductions such as child care expenses and support payments requested by an employee or pensioner and authorized by a tax services office or tax centre
@@ -104,6 +112,8 @@ impl Context {
 *   U1: Union dues for the pay period paid to a trade union, an association of public servants, or dues required under the law of a province to a parity or advisory committee or similar body
 *
 *   F2: Alimony or maintenance payments required by a legal document dated before May 1, 1997, to be payroll-deducted authorized by a tax services office or tax centre
+*
+*   F4: Employee registered pension plan or registered retirement savings plan contributions deducted from the year-to-date non-periodic payments. You can also use this field or design another to apply other tax-deductible amounts to the non-periodic payment, such as union dues
 *
 *   K3P: Other provincial or territorial non-refundable tax credits (such as medical expenses and charitable donations) authorized by a tax services office or tax centre
 *
@@ -115,6 +125,7 @@ impl Context {
 */
 #[allow(non_snake_case)]
 pub struct TaxPayerVariables {
+    pub I: f64,
     pub TCP: f64,
     pub P: i64,
     pub PR: i64,
@@ -127,11 +138,13 @@ pub struct TaxPayerVariables {
     pub B1: f64,
     pub M: f64,
     pub M1: f64,
+    pub F: Option<f64>,
     pub L: Option<f64>,
     pub F1: Option<f64>,
     pub HD: Option<f64>,
     pub U1: Option<f64>,
     pub F2: Option<f64>,
+    pub F4: Option<f64>,
     pub K3P: Option<f64>,
     pub lives_outside_city_limits: bool,
     pub number_of_disabled_dependants: Option<i64>,
@@ -141,6 +154,7 @@ pub struct TaxPayerVariables {
 impl TaxPayerVariables {
     #[allow(non_snake_case)]
     pub fn new(
+        I: f64,
         TCP: f64,
         P: i64,
         PR: i64,
@@ -153,17 +167,20 @@ impl TaxPayerVariables {
         B1: f64,
         M: f64,
         M1: f64,
+        F: Option<f64>,
         L: Option<f64>,
         F1: Option<f64>,
         HD: Option<f64>,
         U1: Option<f64>,
         F2: Option<f64>,
+        F4: Option<f64>,
         K3P: Option<f64>,
         lives_outside_city_limits: bool,
         number_of_disabled_dependants: Option<i64>,
         number_of_minor_dependents: Option<i64>,
     ) -> Self {
         TaxPayerVariables {
+            I,
             TCP,
             P,
             PR,
@@ -176,11 +193,13 @@ impl TaxPayerVariables {
             B1,
             M,
             M1,
+            F,
             L,
             F1,
             HD,
             U1,
             F2,
+            F4,
             K3P,
             lives_outside_city_limits,
             number_of_disabled_dependants,
@@ -190,12 +209,15 @@ impl TaxPayerVariables {
 
     #[doc(hidden)]
     #[allow(non_snake_case)]
-    pub fn __test__(tax_constants: &TaxConstants) -> Result<Self, Box<dyn Error>> {
+    pub fn __test__(tax_constants: &TaxConstants, I: Option<f64>) -> Result<Self, Box<dyn Error>> {
         let TCP: f64 = tax_constants.prov.ORA.get_basic_amount_value().unwrap();
-
+        let i = match I {
+            Some(x) => x,
+            None => 50000.0,
+        };
         Ok(TaxPayerVariables::new(
-            TCP, 52, 52, 12, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, None, None, None, None, None,
-            None, false, None, None,
+            i, TCP, 52, 52, 12, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, None, None, None, None,
+            None, None, None, None, false, None, None,
         ))
     }
 }
@@ -210,7 +232,7 @@ mod tests {
         assert!(result.is_ok());
         let tax_constants = result.unwrap();
 
-        let result = TaxPayerVariables::__test__(&tax_constants);
+        let result = TaxPayerVariables::__test__(&tax_constants, None);
         assert!(result.is_ok());
         let payer = result.unwrap();
 

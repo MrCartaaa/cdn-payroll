@@ -41,7 +41,7 @@ pub fn T4(
 
     let k3p = match ctx.payer_vars.K3P {
         Some(x) => x,
-        None => &0.0,
+        None => 0.0,
     };
 
     let mut v: f64 = ctx.tax_consts.prov.RITC.V[0].to_owned();

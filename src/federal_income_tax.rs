@@ -60,6 +60,26 @@ pub fn F5A(F5: f64, PI: f64, B: f64) -> f64 {
     utils::round(F5 * ((PI - B) / PI))
 }
 
+/** ## Deductions for Canada (or Quebec) Pension Plan additional contributions for the pay period deducted from the non-periodic payment
+*
+* ### Arguements:
+*
+*   [F5](./fn.F5.html): Deductions for Canada Pension Plan additional contributions for the pay period
+*
+*   Use F5Q inplace of F5 for Quebec: Deductions for Quebec Pension Plan additional contributions for the pay period
+*
+*   PI: Pensionable earnings for the pay period, or the gross income plus any taxable benefits for the pay period, including bonuses and retroactive pay increases where applicable
+*
+*   B: Gross bonus, retroactive pay increase, vacation pay when vacation is not taken, accumulated overtime payment or other non-periodic payment
+*
+* ### Examples:
+*   //TODO: create examples...
+*/
+#[allow(non_snake_case)]
+pub fn F5B(F5: f64, PI: f64, B: f64) -> f64 {
+    utils::round(F5 * (B / PI))
+}
+
 /** Annual Basic Federal Tax
 *
 *   For cumulative T3 Calculations, use /[x/]_grad in the below list (if not listed, use the normal
