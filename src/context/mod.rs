@@ -75,7 +75,7 @@ impl Context {
 *
 *   D2: Employee’s year-to-date (before the pay period) second additional Canada Pension Plan contribution with the employer
 *
-*   PEytd: Employee's year-to-date (before the pay period) pensionable earnings
+*   PIytd: Employee's year-to-date (before the pay period) pensionable earnings
 *
 *   D1: Employee’s year-to-date (before the pay period) employment insurance premium with the employer
 *
