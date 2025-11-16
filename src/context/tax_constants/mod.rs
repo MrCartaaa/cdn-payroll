@@ -1,12 +1,4 @@
-//! TaxConstants: used to Initialize Constants by Year for Payroll Tax Calculations.
-
-// this should be deleted when migrating context is finished;
-pub const EI_MAX_CONTRIBUTIONS: f64 = 1077.48;
-pub const CPP_MAX_CONTRIBUTIONS: f64 = 3356.1;
-pub const INCOME_THRESHOLD_4: f64 = 177882.0;
-pub const INCOME_THRESHOLD_5: f64 = 253414.0;
-pub const MINIMUM_BASIC_AMT: f64 = 16129.0;
-pub const MAXIMUM_BASIC_AMT: f64 = 14538.0;
+//! TaxConstants: used to Initialize Constants by Year (see [Version](enum.Version.html)) for Payroll Tax Calculations.
 
 pub mod canada_pension_plan;
 pub mod claim_codes;
@@ -59,7 +51,6 @@ impl TaxConstants {
         })
     }
 }
-
 
 /// TaxConstants Version
 ///

@@ -4,12 +4,23 @@
 
 use dotenv;
 use std::error::Error;
-mod tax_constants;
+pub mod tax_constants;
 pub use tax_constants::*;
 
 /** ## Context
 *
-* ### Where:
+* Context holds all the static data related to the session: Tax Constants and Tax Payer Variables.
+*
+* The Tax Constants are generated from CRA provided .csv file based on the Version passed into the
+* new() fn. The Tax
+* Constants are split into 4 sections: Federal, Provincial Taxes and CPP & EI. The Provincial
+* constants are generated based on the ProvinceKey passed into the new() fn.
+*
+* Payer Variables provide details specific to the Tax Payer that can not be calculated over
+* sessions. This information would likely be held in a database and extracted during
+* initialization.
+*
+* ### Fields:
 *
 *   tax_constants: TaxConstants
 *
@@ -237,8 +248,32 @@ impl TaxPayerVariables {
             None => 50000.0,
         };
         Ok(TaxPayerVariables::new(
-            i, TC, TCP, 52, 52, 12, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, None, None, None,
-            None, None, None, None, None, false, None, None,
+            i,
+            TC,
+            TCP,
+            52,
+            52,
+            12,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            false,
+            Some(1),
+            Some(1),
         ))
     }
 }

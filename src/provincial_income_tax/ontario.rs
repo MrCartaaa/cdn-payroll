@@ -6,7 +6,7 @@ use crate::utils;
 /** ## Provincial surtax calculated on the basic provincial tax (only applies to Ontario)
 *
 *
-* ### Arguements:
+* ### Arguments:
 *
 *   [ctx](../../context/struct.Context.html): Context
 *
@@ -76,7 +76,7 @@ pub fn V1(ctx: &Context, T4: &f64) -> Result<f64, &'static str> {
 /** ## Additional tax calculated on taxable income (only applies to the Ontario Health Premium)
 *
 *
-* ### Arguements:
+* ### Arguments:
 *
 *   [ctx](../../context/struct.Context.html): Context
 *
@@ -159,7 +159,7 @@ pub fn V2(ctx: &Context, A: &f64) -> Result<f64, &'static str> {
 /** ## Provincial tax reduction (only applies to Ontario and British Columbia)
 *
 *
-* ### Arguements:
+* ### Arguments:
 *
 *   [ctx](../../context/struct.Context.html): Context
 *
@@ -196,7 +196,12 @@ pub fn V2(ctx: &Context, A: &f64) -> Result<f64, &'static str> {
 */
 #[allow(non_snake_case)]
 pub fn S(ctx: &Context, T4: &f64, V1: &f64, Y: Option<&f64>) -> Result<f64, &'static str> {
-    let s2 = &ctx.tax_consts.prov.ORA.S2.ok_or_else(|| "unable to locate S2.")?;
+    let s2 = &ctx
+        .tax_consts
+        .prov
+        .ORA
+        .S2
+        .ok_or_else(|| "unable to locate S2.")?;
     let y = match Y {
         Some(y) => y,
         None => &0.0,
@@ -227,40 +232,40 @@ pub fn S(ctx: &Context, T4: &f64, V1: &f64, Y: Option<&f64>) -> Result<f64, &'st
 /** ## Additional provincial tax reduction amount based on the number of eligible dependents used in the calculation of Factor S (only applies to Ontario)
 *
 *
-* ### Arguements:
+* ### Arguments:
 *
 *   [ctx](../../context/struct.Context.html): Context
-*
-*   number_of_disabled_dependants: Number of disabled dependants
-*
-*   number_of_minor_dependents: Number of dependents under the age of 19
 *
 * ### Example:
 * ```
 *   use cdn_payroll::provincial_income_tax::ontario::Y;
 *   use cdn_payroll::context::{Context, Version, ProvinceKey, TaxPayerVariables};
 *
-* let r = Context::new(Version::V2025_1, ProvinceKey::ON, None);
+*   let r = Context::new(Version::V2025_1, ProvinceKey::ON, None);
 *   assert!(r.is_ok());
 *
 *   let ctx = r.unwrap();
-*   let dd = 1;
-*   let md = 1;
 *
-*   let y = Y(&ctx, &dd, &md);
+*   let y = Y(&ctx);
 *
 *   assert_eq!(y, Ok(544.0+544.0));
 * ```
 */
 #[allow(non_snake_case)]
-pub fn Y(
-    ctx: &Context,
-    number_of_disabled_dependants: &i64,
-    number_if_minor_dependents: &i64,
-) -> Result<f64, &'static str> {
+pub fn Y(ctx: &Context) -> Result<f64, &'static str> {
     let ora_on = &ctx.tax_consts.prov.ORA;
     let y_factor = &ora_on.YFactor.ok_or_else(|| "unable to locate Y factor.")?;
 
-    Ok(y_factor * &(*number_of_disabled_dependants as f64)
-        + y_factor * &(*number_if_minor_dependents as f64))
+    Ok(y_factor
+        * ctx
+            .payer_vars
+            .number_of_disabled_dependants
+            .ok_or_else(|| 0)
+            .unwrap() as f64
+        + y_factor
+            * ctx
+                .payer_vars
+                .number_of_minor_dependents
+                .ok_or_else(|| 0)
+                .unwrap() as f64)
 }

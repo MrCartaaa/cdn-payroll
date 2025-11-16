@@ -2,11 +2,11 @@
 //! The Basic Personal Amount (BPA) is a non-refundable tax credit that all individuals can claim in Canada. It provides a full reduction from federal income tax for individuals with taxable income below the BPA and a partial reduction for those with taxable income above it.
 //! It's important to note that the BPA is adjusted annually due to inflation and government policy.
 
-use crate::context;
 use crate::context::Context;
 use crate::utils;
 
-/** ## Calculate Federal Basic Personal Amount.
+/** ## Calculate Federal Basic Personal Amount. This is only required if a TD1 Federal form is not
+* provided.
 *
 * ### Arguements:
 *
@@ -18,7 +18,7 @@ use crate::utils;
 * TODO: Add examples...
 */
 #[allow(non_snake_case)]
-pub fn BPAF(ctx: Context, A: &f64) -> f64 {
+pub fn BPAF(ctx: &Context, A: &f64) -> Result<f64, anyhow::Error> {
     let BPAF: f64;
     let hd = match ctx.payer_vars.HD {
         Some(x) => x,
@@ -29,19 +29,29 @@ pub fn BPAF(ctx: Context, A: &f64) -> f64 {
     let income_threshold_4 = ctx.tax_consts.fed.RITC.A.get(3).unwrap();
     let income_threshold_5 = ctx.tax_consts.fed.RITC.A.get(4).unwrap();
 
+    let minimum_basic_amt = ctx
+        .tax_consts
+        .fed
+        .ORA
+        .Federal
+        .get_basic_amount_value(&ctx.tax_consts)?;
+
     if &NI <= income_threshold_4 {
-        BPAF = context::MINIMUM_BASIC_AMT;
+        BPAF = minimum_basic_amt;
     } else if income_threshold_4 < &NI && &NI < income_threshold_5 {
         //TODO: The hard coded 1591 / 75k has to be replaced with tax_consts (but I am unable to
         //find it; might need to create a new table or add it to an existing one.)
-        BPAF = context::MINIMUM_BASIC_AMT - (&NI * -income_threshold_5) * (1591.0 / 75532.0);
+        BPAF = minimum_basic_amt
+            - (&NI * -income_threshold_5)
+                * (ctx.tax_consts.fed.ORA.Federal.PhaseOutReduction.unwrap()
+                    / (income_threshold_5 - income_threshold_4));
     } else
     // if NI > income_threshold_5
     {
-        BPAF = context::MAXIMUM_BASIC_AMT;
+        BPAF = minimum_basic_amt - ctx.tax_consts.fed.ORA.Federal.PhaseOutReduction.unwrap();
     }
 
-    utils::round(BPAF)
+    Ok(utils::round(BPAF))
 }
 
 /** ## Calculate Non-Commissionable Income Tax.
@@ -167,18 +177,45 @@ mod tests {
     #[test]
     #[allow(non_snake_case)]
     fn test_BPAF_minimum_amt() {
-        let ctx = Context::new(Version::V2025_1, ProvinceKey::ON, None);
-        assert!(ctx.is_ok());
-        let result = BPAF(ctx.unwrap(), &10000.0);
-        assert_eq!(result, context::MINIMUM_BASIC_AMT);
+        let ctx_res = Context::new(Version::V2025_1, ProvinceKey::ON, None);
+        assert!(ctx_res.is_ok());
+        let ctx = ctx_res.unwrap();
+
+        let minimum_basic_amt_res = ctx
+            .tax_consts
+            .fed
+            .ORA
+            .Federal
+            .get_basic_amount_value(&ctx.tax_consts);
+        assert!(minimum_basic_amt_res.is_ok());
+
+        let minimum_basic_amt = minimum_basic_amt_res.unwrap();
+        let result = BPAF(&ctx, &10000.0);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), minimum_basic_amt);
     }
 
     #[test]
     #[allow(non_snake_case)]
     fn test_BPAF_maximum_amt() {
-        let ctx = Context::new(Version::V2025_1, ProvinceKey::ON, None);
-        assert!(ctx.is_ok());
-        let result = BPAF(ctx.unwrap(), &253414.01);
-        assert_eq!(result, context::MAXIMUM_BASIC_AMT);
+        let ctx_res = Context::new(Version::V2025_1, ProvinceKey::ON, None);
+        assert!(ctx_res.is_ok());
+        let ctx = ctx_res.unwrap();
+
+        let minimum_basic_amt_res = ctx
+            .tax_consts
+            .fed
+            .ORA
+            .Federal
+            .get_basic_amount_value(&ctx.tax_consts);
+        assert!(minimum_basic_amt_res.is_ok());
+
+        let minimum_basic_amt = minimum_basic_amt_res.unwrap();
+        let result = BPAF(&ctx, &253414.01);
+        assert!(result.is_ok());
+        assert_eq!(
+            result.unwrap(),
+            minimum_basic_amt - ctx.tax_consts.fed.ORA.Federal.PhaseOutReduction.unwrap()
+        );
     }
 }

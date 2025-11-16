@@ -131,6 +131,7 @@ fn handle_multiaxis(mut records: Vec<ORA>) -> Vec<ORA> {
                 YFactor: records[last_fed_prov_row].YFactor.clone(),
                 Abat: records[last_fed_prov_row].Abat.clone(),
                 Surtax: records[last_fed_prov_row].Surtax.clone(),
+                PhaseOutReduction: records[last_fed_prov_row].PhaseOutReduction.clone(),
             };
             last_fed_prov_row = 9999;
             last_t4atv1 = Vec::new();
@@ -235,25 +236,24 @@ pub struct ORA {
     pub Abat: Option<f64>,
     #[serde(deserialize_with = "quoted_f64", rename = "Surtax")]
     pub Surtax: Option<f64>,
+    #[serde(deserialize_with = "quoted_f64", rename = "Phase-out Reduction")]
+    pub PhaseOutReduction: Option<f64>,
 }
 
 impl ORA {
-    pub fn get_basic_amount_value(
-        &self,
-        tax_consts: &TaxConstants,
-    ) -> Result<f64, Box<dyn StdError>> {
+    pub fn get_basic_amount_value(&self, tax_consts: &TaxConstants) -> Result<f64, anyhow::Error> {
         let bamt = &self.BasicAmt;
 
-        Ok(match bamt {
-            None => 0.0,
+        match bamt {
+            None => Ok(0.0),
             Some(basic_amt) => match basic_amt {
-                BasicAmount::BasicAmt(x) => x.to_owned(),
-                BasicAmount::Federal => tax_consts.fed.CC[1].TC,
-                _ => {
-                    return Err("Basic Amount value for the province is not yet implemented".into())
-                }
+                BasicAmount::BasicAmt(x) => Ok(x.to_owned()),
+                BasicAmount::Federal => Ok(tax_consts.fed.CC[1].TC),
+                _ => Err(anyhow::anyhow!(
+                    "Basic Amount value for the province is not yet implemented"
+                )),
             },
-        })
+        }
     }
 }
 

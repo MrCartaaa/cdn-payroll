@@ -9,7 +9,7 @@ use crate::utils;
 *   parameter).
 *
 *
-* ### Arguements:
+* ### Arguments:
 *
 *   ctx: Context
 *
@@ -64,7 +64,7 @@ pub fn T4(
 /** ## Annual provincial or territorial tax deduction (except Quebec)
 *
 *
-* ### Arguements:
+* ### Arguments:
 *
 *   ctx: Context
 *
@@ -104,7 +104,7 @@ pub fn T2(ctx: &Context, T4: f64, V1: f64, V2: f64, S: f64, LCP: Option<f64>) ->
 *    (the lowest tax rate of the province or territory is used to calculate this credit)
 *
 *
-* ### Arguements:
+* ### Arguments:
 *
 *   ctx: Context
 *
@@ -120,7 +120,7 @@ pub fn K1P(ctx: &Context) -> f64 {
 *
 *   If an employee reaches the maximum CPP or EI for the year with an employer, the instructions in the note for the K2 factor also apply to the K2P factor. For employees paid by commission, use the federal K2 formula for commissions and replace the lowest federal rate in the K2 formula with the lowest provincial or territorial tax rate
 *
-*  ### Arguements:
+*  ### Arguments:
 *
 *   ctx: Context
 *
@@ -162,7 +162,7 @@ pub fn K2P(ctx: &Context, C: f64, EI: f64) -> f64 {
 *
 *   Uses Cumulative Average Calculation
 *
-*  ### Arguements:
+*  ### Arguments:
 *
 *   ctx: Context
 *
