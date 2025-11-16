@@ -1,4 +1,4 @@
-//! # Income Tax Calculations.
+//! # Federal Income Tax Calculations.
 //!
 
 use crate::context::Context;

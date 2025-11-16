@@ -15,7 +15,8 @@ use crate::utils;
 * ### Example:
 *
 * ```
-* use cdn_payroll::context::{Context, Version, ProvinceKey};
+* use cdn_payroll::context::tax_constants::{ProvinceKey, Version};
+* use cdn_payroll::context::Context;
 * use cdn_payroll::provincial_income_tax::ontario::V1;
 *
 * let result = Context::new(Version::V2025_1, ProvinceKey::ON, None);
@@ -85,7 +86,8 @@ pub fn V1(ctx: &Context, T4: &f64) -> Result<f64, &'static str> {
 * ### Example:
 *
 * ```
-* use cdn_payroll::context::{Context, Version, ProvinceKey};
+* use cdn_payroll::context::tax_constants::{ProvinceKey, Version};
+* use cdn_payroll::context::Context;
 * use cdn_payroll::provincial_income_tax::ontario::V2;
 *
 * let result = Context::new(Version::V2025_1, ProvinceKey::ON, None);
@@ -171,7 +173,8 @@ pub fn V2(ctx: &Context, A: &f64) -> Result<f64, &'static str> {
 *
 * ### Example:
 * ```
-* use cdn_payroll::context::{Context, Version, ProvinceKey};
+* use cdn_payroll::context::tax_constants::{ProvinceKey, Version};
+* use cdn_payroll::context::Context;
 * use cdn_payroll::provincial_income_tax::ontario::{V1, S};
 *
 * let result = Context::new(Version::V2025_1, ProvinceKey::ON, None);
@@ -239,7 +242,8 @@ pub fn S(ctx: &Context, T4: &f64, V1: &f64, Y: Option<&f64>) -> Result<f64, &'st
 * ### Example:
 * ```
 *   use cdn_payroll::provincial_income_tax::ontario::Y;
-*   use cdn_payroll::context::{Context, Version, ProvinceKey, TaxPayerVariables};
+*   use cdn_payroll::context::tax_constants::{ProvinceKey, Version};
+*   use cdn_payroll::context::Context;
 *
 *   let r = Context::new(Version::V2025_1, ProvinceKey::ON, None);
 *   assert!(r.is_ok());

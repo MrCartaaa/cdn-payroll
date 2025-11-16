@@ -1,11 +1,11 @@
-//! # Contexts (Person's) TaxConstants.
+//! # Federal & Provincial TaxConstants, and Tax Payer Variables
 //!
 //! This defines the individual's persistant details, as defined by the user.
 
 use dotenv;
 use std::error::Error;
 pub mod tax_constants;
-pub use tax_constants::*;
+use tax_constants::*;
 
 /** ## Context
 *

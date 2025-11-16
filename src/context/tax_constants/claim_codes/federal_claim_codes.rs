@@ -77,6 +77,7 @@ fn quoted_f64<'de, D: Deserializer<'de>>(deserializer: D) -> Result<f64, D::Erro
     })
 }
 
+#[doc(hidden)]
 pub trait FederalClaimCodesGetter {
     /// Initialize Federal Claim Codes
     fn init_cc(version: &Version) -> Result<Vec<FederalClaimCode>, Box<dyn StdError>> {

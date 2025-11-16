@@ -5,8 +5,7 @@
 use crate::context::Context;
 use crate::utils;
 
-/** ## Calculate Federal Basic Personal Amount. This is only required if a TD1 Federal form is not
-* provided.
+/** ## Calculate Federal Basic Personal Amount. This is only required if a TD1 Federal form is not provided.
 *
 * ### Arguements:
 *
@@ -103,9 +102,7 @@ pub fn A(ctx: Context, F5A: f64, mut T: f64) -> (f64, f64) {
     (utils::round(a), T)
 }
 
-/** ## Calculate Non-Commissionable Income Tax
-*
-*  Using Cumulative Average Calculation
+/** ## Calculate Non-Commissionable Income Tax Using Cumulative Average Calculation
 *
 * ### Arguements:
 *
@@ -155,7 +152,7 @@ pub fn A_grad(ctx: &Context, S1: f64, F5A: f64, F5B: f64) -> f64 {
     a
 }
 
-/** ## Annualizing factor
+/** ## Annualizing factor: this is used for cumalitve calculations (typically suffixed with [x]_grad)
 *
 * ### Arguements:
 *
@@ -172,7 +169,8 @@ pub fn S1(ctx: &Context) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::context::{Context, ProvinceKey, Version};
+    use crate::context::tax_constants::{ProvinceKey, Version};
+    use crate::context::Context;
 
     #[test]
     #[allow(non_snake_case)]

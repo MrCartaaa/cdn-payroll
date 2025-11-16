@@ -1,4 +1,4 @@
-//! TaxConstants: used to Initialize Constants by Year (see [Version](enum.Version.html)) for Payroll Tax Calculations.
+//! Initialize Tax Constants by Year (see [Version](../tax_constants/enum.Version.html)) for Payroll Tax Calculations.
 
 pub mod canada_pension_plan;
 pub mod claim_codes;
@@ -83,7 +83,18 @@ impl Federal {
     }
 }
 
-/// Province Constants
+/// ## Provincial Constants
+///
+/// when the [Context](../struct.Context.html) is initialized, it uses the province key to identify
+/// which tax tables to use; those tables are represented here with the related fields.
+///
+/// ### Fields:
+///
+/// ORA: Other Rates and Amounts
+///
+/// CC: Claim Codes
+///
+/// RITC: Rates, Income Thresholds and Constants
 #[derive(Debug)]
 #[allow(non_snake_case)]
 pub struct Province {

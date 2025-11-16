@@ -6,6 +6,7 @@ use serde::{de, Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 use std::error::Error as StdError;
 
+#[doc(hidden)]
 pub trait ProvRITCGetter {
     /** Initialize Rates, Income Thresholds and Constants.
      */
@@ -30,6 +31,7 @@ pub trait ProvRITCGetter {
     }
 }
 
+#[doc(hidden)]
 pub trait FedRITCGetter {
     fn init_ritc(version: &Version) -> Result<FedRITC, Box<dyn StdError>> {
         Ok(FedRITC::from_prov_ritc(get_row_from_str(
@@ -177,6 +179,7 @@ pub struct FedRITC {
     pub K: Vec<f64>,
 }
 
+#[doc(hidden)]
 #[derive(Debug)]
 #[allow(non_snake_case)]
 pub struct FederalThreshold {
