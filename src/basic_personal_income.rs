@@ -1,154 +1,221 @@
 //! # Basic Personal Amount Calculation
-//! The Basic Personal Amount (BPA) is a non-refundable tax credit that all individuals can claim in Canada. It provides a full reduction from federal income tax for individuals with taxable income below the BPA and a partial reduction for those with taxable income above it. 
+//! The Basic Personal Amount (BPA) is a non-refundable tax credit that all individuals can claim in Canada. It provides a full reduction from federal income tax for individuals with taxable income below the BPA and a partial reduction for those with taxable income above it.
 //! It's important to note that the BPA is adjusted annually due to inflation and government policy.
 
+use crate::context::Context;
 use crate::utils;
-use crate::year::v2025;
 
-/** Calculate Federal Basic Personal Amount.
+/** ## Calculate Federal Basic Personal Amount. This is only required if a TD1 Federal form is not
+* provided.
 *
+* ### Arguements:
 *
-* Given:
+*   ctx: Context
 *
-*   A: Annual Taxable Income
+*   [A](./fn.A.html): Annual Taxable Income
 *
-*   HD: Annual deduction for living in a prescribed zone, as shown on Form TD1
-*
-* Where:
-*
-*   NI: Net Income
-*
-*   NI = A + HD
+* ### Examples:
+* TODO: Add examples...
 */
 #[allow(non_snake_case)]
-pub fn BPAF(A: f64, HD: f64) -> Result<f64, f64> {
-    let mut BPAF: f64 = 0.0;
-    let NI = A+HD;
+pub fn BPAF(ctx: &Context, A: &f64) -> Result<f64, anyhow::Error> {
+    let BPAF: f64;
+    let hd = match ctx.payer_vars.HD {
+        Some(x) => x,
+        None => 0.0,
+    };
+    let NI = A + hd;
 
-    if NI <= v2025::INCOME_THRESHOLD_4 {
-        BPAF = v2025::MINIMUM_BASIC_AMT;
-    } else
-    if v2025::INCOME_THRESHOLD_4 < NI && NI < v2025::INCOME_THRESHOLD_5 {
-        BPAF = v2025::MINIMUM_BASIC_AMT - (NI*-v2025::INCOME_THRESHOLD_4) * (1591.0 / 75532.0);
-    } else
-    if NI > v2025::INCOME_THRESHOLD_5 {
-        BPAF = v2025::MAXIMUM_BASIC_AMT;
-    }
+    let income_threshold_4 = ctx.tax_consts.fed.RITC.A.get(3).unwrap();
+    let income_threshold_5 = ctx.tax_consts.fed.RITC.A.get(4).unwrap();
 
-    if BPAF == 0.0 {
-        return Err(0.0)
+    let minimum_basic_amt = ctx
+        .tax_consts
+        .fed
+        .ORA
+        .Federal
+        .get_basic_amount_value(&ctx.tax_consts)?;
+
+    if &NI <= income_threshold_4 {
+        BPAF = minimum_basic_amt;
+    } else if income_threshold_4 < &NI && &NI < income_threshold_5 {
+        //TODO: The hard coded 1591 / 75k has to be replaced with tax_consts (but I am unable to
+        //find it; might need to create a new table or add it to an existing one.)
+        BPAF = minimum_basic_amt
+            - (&NI * -income_threshold_5)
+                * (ctx.tax_consts.fed.ORA.Federal.PhaseOutReduction.unwrap()
+                    / (income_threshold_5 - income_threshold_4));
+    } else
+    // if NI > income_threshold_5
+    {
+        BPAF = minimum_basic_amt - ctx.tax_consts.fed.ORA.Federal.PhaseOutReduction.unwrap();
     }
 
     Ok(utils::round(BPAF))
 }
 
-/** Calculate Non-Commissionable Income Tax.
+/** ## Calculate Non-Commissionable Income Tax.
 *
 *
-* Given:
+* ### Arguements:
 *
-*   P: number of pay periods in the year.
+*   ctx: Context
 *
-*   I: Gross remuneration for the pay period.
+*   [F5A](../federal_income_tax/fn.F5A.html): Deductions for Canada (or Quebec) Pension Plan additional contributions for the pay period deducted from the periodic income
 *
-*   This includes overtime earned and paid in the same pay period, pension income, qualified pension income, and taxable benefits, but does not include bonuses, retroactive pay increases, or other non-periodic payments
+*   T - [[T](../income_tax/fn.T.html) or [T_grad](../income_tax/fn.T_grad.html)] : Estimated federal and provincial or territorial tax deductions for the pay period
 *
-*   F: Payroll deductions for the pay period for employee contributions to a registered pension plan (RPP) for current and past services, a registered retirement savings plan (RRSP), to a pooled registered pension plan (PRPP), or a retirement compensation arrangement (RCA).
+* ### Examples:
+* TODO: Add examples...
 *
-*   For tax deduction purposes, employers can deduct amounts contributed to an RPP, RRSP, PRPP, or RCA by or on behalf of an employee to determine the employee's taxable income
-*
-*   F2: Alimony or maintenance payments required by a legal document dated before May 1, 1997, to be payroll-deducted authorized by a tax services office or tax centre
-*
-*   F5A: Deductions for Canada (or Quebec) Pension Plan additional contributions for the pay period deducted from the periodic income
-*
-*   U1: Union dues for the pay period paid to a trade union, an association of public servants, or dues required under the law of a province to a parity or advisory committee or similar body
-*
-*   HD: Annual deduction for living in a prescribed zone, as shown on Form TD1
-*
-*   F1: Annual deductions such as child care expenses and support payments requested by an employee or pensioner and authorized by a tax services office or tax centre
-*
-*   T: Estimated federal and provincial or territorial tax deductions for the pay period
-*
-*   L: Additional tax deductions for the pay period requested by the employee or pensioner as shown on Form TD1
 */
 #[allow(non_snake_case)]
-pub fn A(P: i64, I: f64, F: f64, F2: f64, F5A: f64, U1: f64, HD: f64, F1: f64, mut T: f64, L: f64) -> (f64, f64) {
+pub fn A(ctx: Context, F5A: f64, mut T: f64) -> (f64, f64) {
     let a: f64;
-    a = P as f64 * (I - F - F2 -F5A -U1) - HD - F1;
+    let f = match ctx.payer_vars.F {
+        Some(x) => x,
+        None => 0.0,
+    };
+    let u1 = match ctx.payer_vars.U1 {
+        Some(x) => x,
+        None => 0.0,
+    };
+    let hd = match ctx.payer_vars.HD {
+        Some(x) => x,
+        None => 0.0,
+    };
+    let f1 = match ctx.payer_vars.F1 {
+        Some(x) => x,
+        None => 0.0,
+    };
+    let f2 = match ctx.payer_vars.F2 {
+        Some(x) => x,
+        None => 0.0,
+    };
+    let l = match ctx.payer_vars.L {
+        Some(x) => x,
+        None => 0.0,
+    };
+    a = ctx.payer_vars.P as f64 * (ctx.payer_vars.I - f - f2 - F5A - u1) - hd - f1;
     if a.is_sign_negative() {
-        T = L
+        T = l
     }
     (utils::round(a), T)
 }
 
-/** Calculate Non-Commissionable Income Tax
+/** ## Calculate Non-Commissionable Income Tax
 *
 *  Using Cumulative Average Calculation
 *
-* Given:
+* ### Arguements:
 *
-*  S1: Annualizing factor
+*   ctx: Context
 *
-*  I: Gross pay for the pay period. This includes overtime earned and paid in the same pay period, pension income, qualified pension income, and taxable benefits, plus IYTD, but does not include amounts in factor B.
+*  [S1](./fn.S1.html): Annualizing factor
 *
-*  F: Payroll deductions for the pay period for employee contributions to a registered pension plan for current and past services, a registered retirement savings plan (RRSP), or a retirement compensation arrangement plus FYTD.
+*  [F5A](../federal_income_tax/fn.F5A.html): Deductions for Canada (or Quebec) Pension Plan additional contributions for the pay period deducted from the periodic income plus F5AYTD.
 *
-*  F1: Federal non-refundable personal tax credit (the lowest federal tax rate is used to calculate this credit)
+*  [F5B](../federal_income_tax/fn.F5B.html): Deductions for Canada (or Quebec) Pension Plan additional contributions for the pay period deducted from the non-periodic income plus F5BYTD.
 *
-*  F2: Alimony or maintenance payments required by a legal document dated before May 1, 1997, to be deducted at source from the employee’s salary for the pay period plus F2YTD. The legal document could be a garnishment or a similar order of a court or competent tribunal.
-*
-*  F4: Employee registered pension plan or registered retirement savings plan contributions deducted from the year‑to‑date non-periodic payments. You can also use this field or design another to apply other tax-deductible amounts to the non-periodic payment, such as union dues.
-*
-*  F5A: Deductions for Canada (or Quebec) Pension Plan additional contributions for the pay period deducted from the periodic income plus F5AYTD.
-*
-*  F5B: Deductions for Canada (or Quebec) Pension Plan additional contributions for the pay period deducted from the non-periodic income plus F5BYTD.
-*
-*  U1: Union dues for the pay period, plus U1YTD.
-*
-*  B1: Year‑to‑date (before this pay period) non-periodic payments such as bonuses, retroactive pay increases, vacation pay when vacation is not taken, and accumulated overtime. Since the tax on a current non-periodic payment is calculated separately, do not include the current non-periodic payment in calculating A.
-*
-*  Note: For overtime earned and paid in the same pay period, the payment is included with the I factor. Also, when the employee gets vacation pay and takes vacation, the income is included in the I factor. If you want to make deductions such as RRSP contributions from the bonus payment, see the instructions in Option 1 for using factors F3 and F4.
-*
-*  HD: Annual deduction for living in a prescribed zone, as shown on Form TD1
+* ### Examples:
+* TODO: Add examples...
 */
 #[allow(non_snake_case)]
-pub fn A_grad(S1: f64, I: f64, F: f64, F1: f64, F2: f64, F4: f64, F5A: f64, F5B: f64, U1: f64, B1: f64, HD: f64) -> f64 {
-    let a: f64 = (S1 * (I - F - F2 - F5A - U1)) + (B1 - F4 - F5B) - HD - F1;
+pub fn A_grad(ctx: &Context, S1: f64, F5A: f64, F5B: f64) -> f64 {
+    let f = match ctx.payer_vars.F {
+        Some(x) => x,
+        None => 0.0,
+    };
+    let f1 = match ctx.payer_vars.F1 {
+        Some(x) => x,
+        None => 0.0,
+    };
+    let f2 = match ctx.payer_vars.F2 {
+        Some(x) => x,
+        None => 0.0,
+    };
+    let f4 = match ctx.payer_vars.F4 {
+        Some(x) => x,
+        None => 0.0,
+    };
+    let hd = match ctx.payer_vars.HD {
+        Some(x) => x,
+        None => 0.0,
+    };
+    let u1 = match ctx.payer_vars.U1 {
+        Some(x) => x,
+        None => 0.0,
+    };
+
+    let a: f64 =
+        (S1 * (ctx.payer_vars.I - f - f2 - F5A - u1)) + (ctx.payer_vars.B1 - f4 - F5B) - hd - f1;
     if a.is_sign_negative() {
         return 0.0;
     }
     a
 }
 
-/** Annualizing factor
+/** ## Annualizing factor
 *
-* Given:
+* ### Arguements:
 *
-*   total_pay_periods: the number of total pay periods (or the employee’s pay periods if the employees worked less than the total pay periods)
-*   current_pay_period: current pay period
+*   ctx: Context
+*
+* ### Examples:
+* TODO: Add examples...
 */
 #[allow(non_snake_case)]
-pub fn S1(total_pay_periods: i64, current_pay_period: i64) -> f64 {
-    (total_pay_periods / current_pay_period) as f64
+pub fn S1(ctx: &Context) -> f64 {
+    (ctx.payer_vars.P / (ctx.payer_vars.P - ctx.payer_vars.PR + 1)) as f64
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::context::{Context, ProvinceKey, Version};
 
     #[test]
     #[allow(non_snake_case)]
     fn test_BPAF_minimum_amt() {
-        let result = BPAF(10000.0, 0.0);
-        assert_eq!(result.unwrap(), v2025::MINIMUM_BASIC_AMT);
+        let ctx_res = Context::new(Version::V2025_1, ProvinceKey::ON, None);
+        assert!(ctx_res.is_ok());
+        let ctx = ctx_res.unwrap();
+
+        let minimum_basic_amt_res = ctx
+            .tax_consts
+            .fed
+            .ORA
+            .Federal
+            .get_basic_amount_value(&ctx.tax_consts);
+        assert!(minimum_basic_amt_res.is_ok());
+
+        let minimum_basic_amt = minimum_basic_amt_res.unwrap();
+        let result = BPAF(&ctx, &10000.0);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), minimum_basic_amt);
     }
 
     #[test]
     #[allow(non_snake_case)]
     fn test_BPAF_maximum_amt() {
-        let result = BPAF(253414.01, 0.0);
-        assert_eq!(result.unwrap(), v2025::MAXIMUM_BASIC_AMT);
+        let ctx_res = Context::new(Version::V2025_1, ProvinceKey::ON, None);
+        assert!(ctx_res.is_ok());
+        let ctx = ctx_res.unwrap();
+
+        let minimum_basic_amt_res = ctx
+            .tax_consts
+            .fed
+            .ORA
+            .Federal
+            .get_basic_amount_value(&ctx.tax_consts);
+        assert!(minimum_basic_amt_res.is_ok());
+
+        let minimum_basic_amt = minimum_basic_amt_res.unwrap();
+        let result = BPAF(&ctx, &253414.01);
+        assert!(result.is_ok());
+        assert_eq!(
+            result.unwrap(),
+            minimum_basic_amt - ctx.tax_consts.fed.ORA.Federal.PhaseOutReduction.unwrap()
+        );
     }
-
 }
-

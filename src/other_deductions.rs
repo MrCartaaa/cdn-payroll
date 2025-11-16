@@ -1,29 +1,25 @@
-//! Canadian Pension Plan and Employee Insurance Deductions
+//! # Canadian Pension Plan and Employee Insurance Deductions
 
+use crate::context::Context;
 use crate::utils;
-use crate::year::v2025;
 
-//
-// Canada Pension Plan Calculations:
-//
-
-
-/** Canada (or Quebec) Pension Plan contributions for the pay period (Non-Commissionable Earnings)
+/** ## Canada (or Quebec) Pension Plan contributions for the pay period (Non-Commissionable Earnings)
 *
-* Given:
+* ### Arguements:
 *
-*   PM: The total number of months during which CPP and/or QPP contributions are required to be deducted (used in the proration of maximum contribution).
-*
-*   D: Employee’s year-to-date (before the pay period) Canada Pension Plan contribution with the employer
+*   ctx: Context
 *
 *   PI: Pensionable earnings for the pay period, or the gross income plus any taxable benefits for the pay period, including bonuses and retroactive pay increases where applicable
 *
-*   P: The number of pay periods in the year
+* ### Examples:
+*   // TODO: Create examples
 */
 #[allow(non_snake_case)]
-pub fn C(PM: i64, D: f64, PI: f64, P: i64) -> f64 {
-    let c1: f64 = 4034.1 * (PM/12) as f64 - D;
-    let c2: f64 = 0.0595 * (PI - (3500.0 / P as f64));
+pub fn C(ctx: Context, PI: f64) -> f64 {
+    let c1: f64 = ctx.tax_consts.CPP.TtlCPP_CRA.MaxEE_ER_TtlCont * (ctx.payer_vars.PM / 12) as f64
+        - ctx.payer_vars.D;
+    let c2: f64 = ctx.tax_consts.CPP.TtlCPP_CRA.EE_ER_TtlContRate
+        * (PI - (ctx.tax_consts.CPP.TtlCPP_CRA.BasicException / ctx.payer_vars.P as f64));
     if c1 < c2 {
         return utils::round(c2);
     } else {
@@ -31,24 +27,26 @@ pub fn C(PM: i64, D: f64, PI: f64, P: i64) -> f64 {
     }
 }
 
-/** Second additional Canada (or Quebec) Pension Plan contributions for the pay period
+/** ## Second additional Canada (or Quebec) Pension Plan contributions for the pay period
 *
-* Given:
+* ### Arguements:
 *
-*   PM: The total number of months during which CPP and/or QPP contributions are required to be deducted (used in the proration of maximum contribution).
-*
-*   D2: Employee’s year-to-date (before the pay period) second additional Canada Pension Plan contribution with the employer
-*
-*   PI_YTD: Year-to-date pensionable earnings, or the year-to-date gross income plus any taxable benefits, including bonuses and retroactive pay increases where applicable
+*   ctx: Context
 *
 *   PI: Pensionable earnings for the pay period, or the gross income plus any taxable benefits for the pay period, including bonuses and retroactive pay increases where applicable
 *
 *   W: The greater of year-to-date (before the pay period) pensionable earnings (PIYTD or GYTD) and employee’s Year’s Maximum Pensionable Earnings (YMPE).
+*
+* ### Examples:
+*   // TODO: create examples
 */
 #[allow(non_snake_case)]
-pub fn C2(PM: i64, D2: f64, PI_YTD: f64, PI: f64, W: f64) -> f64 {
-    let c21: f64 = 396.0 * (PM/12) as f64 - D2;
-    let c22: f64 = (PI_YTD + PI - W) * 0.04;
+pub fn C2(ctx: Context, PI: f64, W: f64) -> f64 {
+    let c21: f64 = ctx.tax_consts.CPP.CPPSAddtnlRate.MaxEE_ER_SAddtnlCont
+        * (ctx.payer_vars.PM / 12) as f64
+        - ctx.payer_vars.D2;
+    let c22: f64 =
+        (ctx.payer_vars.PIytd + PI - W) * ctx.tax_consts.CPP.CPPSAddtnlRate.EE_ER_SAddtnlContRate;
     let mut c2: f64;
     if c21 < c22 {
         c2 = c21;
@@ -62,48 +60,49 @@ pub fn C2(PM: i64, D2: f64, PI_YTD: f64, PI: f64, W: f64) -> f64 {
     utils::round(c2)
 }
 
-/** Year-to-Date Pensionable Earnings (PI_YTD) (or employee's Year's Maximum Pensionable Earnings (YMPE))
+// TODO: This Function takes only context. It can be initialized with context.
+
+/** ## Year-to-Date Pensionable Earnings (PI_YTD) (or employee's Year's Maximum Pensionable Earnings (YMPE))
 *
-* Given:
+* ### Arguements:
 *
-*   PI_YTD: Year-to-date pensionable earnings, or the year-to-date gross income plus any taxable benefits, including bonuses and retroactive pay increases where applicable
+*   ctx: Context
 *
-*   YMPE: Year's Maximum Pensionable Earnings
-*
-*   PM: The total number of months during which CPP and/or QPP contributions are required to be deducted (used in the proration of maximum contribution).
+* ### Examples:
+*   //TODO: create examples
 */
 #[allow(non_snake_case)]
-pub fn W(PI_YTD: f64, YMPE: f64, PM: i64) -> f64 {
-    let w1: f64 = YMPE * (PM/12) as f64;
+pub fn W(ctx: Context) -> f64 {
+    let w1: f64 = ctx.tax_consts.CPP.TtlCPP_CRA.YMPE * (ctx.payer_vars.PM / 12) as f64;
 
-    if w1 > PI_YTD {
+    if w1 > ctx.payer_vars.PIytd {
         return utils::round(w1);
     }
-    PI_YTD
+    ctx.payer_vars.PIytd
 }
-
 
 //
 // Employee Insurance Calculations:
 //
 
-
-/** Employment insurance premiums for the pay period
+/** ## Employment insurance premiums for the pay period
 *
-* Given:
+* ### Arguements:
 *
-*   D1: Employee’s year-to-date (before the pay period) employment insurance premium with the employer
+*   ctx: Context
 *
 *   IE: Insurable earnings for the pay period, including insurable taxable benefits, bonuses, and retroactive pay increases
+*
+* ### Examples:
+*   //TODO: Create examples
 */
 #[allow(non_snake_case)]
-pub fn EI(D1: f64, IE: f64) -> f64 {
-    let ei1: f64 = v2025::EI_MAX_CONTRIBUTIONS - D1;
-    let ei2: f64 = 0.0164 * IE;
+pub fn EI(ctx: Context, IE: f64) -> f64 {
+    let ei1: f64 = ctx.tax_consts.EI.MaxAEEP - ctx.payer_vars.D1;
+    let ei2: f64 = ctx.tax_consts.EI.EE_CR * IE;
     if ei1 < ei2 {
         return utils::round(ei1);
     } else {
         return utils::round(ei2);
     }
 }
-
