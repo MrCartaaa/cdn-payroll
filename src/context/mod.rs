@@ -57,11 +57,14 @@ impl Context {
         })
     }
 }
-/* ## Tax Payer Variables.
+
+/** ## Tax Payer Variables.
 *
 *   I: Gross remuneration for the pay period.
 *
 *   This includes overtime earned and paid in the same pay period, pension income, qualified pension income, and taxable benefits, but does not include bonuses, retroactive pay increases, or other non-periodic payments
+*
+*   TC: Total Claim Amount as defined by the Federal TD Form.
 *
 *   TCP: Total Claim Amount as defined by the Provincial or territorial TD1 Form.
 *
@@ -80,6 +83,8 @@ impl Context {
 *   D1: Employee’s year-to-date (before the pay period) employment insurance premium with the employer
 *
 *   EIytd: Employee's year-to-date (before the pay period) Insurable earnings
+*
+*   B: Gross bonuses, retroactive pay increases, vacation pay when vacation is not taken, accumulated overtime payments or other non-periodic payments (current pay period)
 *
 *   B1: Gross bonuses, retroactive pay increases, vacation pay when vacation is not taken, accumulated overtime payments or other non-periodic payments year-to-date (before the pay period)
 *
@@ -126,6 +131,7 @@ impl Context {
 #[allow(non_snake_case)]
 pub struct TaxPayerVariables {
     pub I: f64,
+    pub TC: f64,
     pub TCP: f64,
     pub P: i64,
     pub PR: i64,
@@ -135,6 +141,7 @@ pub struct TaxPayerVariables {
     pub PIytd: f64,
     pub D1: f64,
     pub EIytd: f64,
+    pub B: f64,
     pub B1: f64,
     pub M: f64,
     pub M1: f64,
@@ -155,6 +162,7 @@ impl TaxPayerVariables {
     #[allow(non_snake_case)]
     pub fn new(
         I: f64,
+        TC: f64,
         TCP: f64,
         P: i64,
         PR: i64,
@@ -164,6 +172,7 @@ impl TaxPayerVariables {
         PIytd: f64,
         D1: f64,
         EIytd: f64,
+        B: f64,
         B1: f64,
         M: f64,
         M1: f64,
@@ -181,6 +190,7 @@ impl TaxPayerVariables {
     ) -> Self {
         TaxPayerVariables {
             I,
+            TC,
             TCP,
             P,
             PR,
@@ -190,6 +200,7 @@ impl TaxPayerVariables {
             PIytd,
             D1,
             EIytd,
+            B,
             B1,
             M,
             M1,
@@ -210,14 +221,24 @@ impl TaxPayerVariables {
     #[doc(hidden)]
     #[allow(non_snake_case)]
     pub fn __test__(tax_constants: &TaxConstants, I: Option<f64>) -> Result<Self, Box<dyn Error>> {
-        let TCP: f64 = tax_constants.prov.ORA.get_basic_amount_value().unwrap();
+        let TCP: f64 = tax_constants
+            .prov
+            .ORA
+            .get_basic_amount_value(tax_constants)
+            .unwrap();
+        let TC: f64 = tax_constants
+            .fed
+            .ORA
+            .Federal
+            .get_basic_amount_value(tax_constants)
+            .unwrap();
         let i = match I {
             Some(x) => x,
             None => 50000.0,
         };
         Ok(TaxPayerVariables::new(
-            i, TCP, 52, 52, 12, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, None, None, None, None,
-            None, None, None, None, false, None, None,
+            i, TC, TCP, 52, 52, 12, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, None, None, None,
+            None, None, None, None, None, false, None, None,
         ))
     }
 }

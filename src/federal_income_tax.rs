@@ -1,51 +1,58 @@
 //! # Income Tax Calculations.
 //!
 
-use crate::context;
+use crate::context::Context;
 use crate::utils;
 
-/** Calculate Annual Deductions.
+/** ## Calculate Annual Deductions.
 *
 * If F1 amount is implemented after the first pay period of the year, it must be calculated.
 *
+* ### Arguments:
 *
-* Given:
+*   ctx: Context
 *
-*   P: number of pay periods in the year.
+*   [F1](fn.F1.html): total annual deductions
 *
-*   F1: total annual deductions
-*
-*   PR: number of pay periods left in the year (including the current pay period)
+* ### Examples:
+*   //TODO: create examples...
 */
 #[allow(non_snake_case)]
-pub fn F1(P: i64, PR: i64, F1: f64) -> f64 {
-    utils::round((P as f64 * F1) / PR as f64)
+pub fn F1(ctx: Context, F1: f64) -> f64 {
+    utils::round((ctx.payer_vars.P as f64 * F1) / ctx.payer_vars.PR as f64)
 }
 
-/** Deductions for Canada Pension Plan additional contributions for the pay period.
+/** ## Deductions for Canada Pension Plan additional contributions for the pay period.
 *
 *    NOTE, A separate formula is used for non-commissionable earnings.
 *
 *
 *
-* Given:
+* ### Arguements:
 *
-*    C: Canada (or Quebec) Pension Plan contributions for the pay period
+*   ctx: Context
 *
-*   C2: Second additional Canada (or Quebec) Pension Plan contributions for the pay period
+*   [C](../other_deductions/fn.C.html): Canada (or Quebec) Pension Plan contributions for the pay period
+*
+*   [C2](../other_deductions/fn.C2.html): Second additional Canada (or Quebec) Pension Plan contributions for the pay period
+*
+* ### Examples:
+*   //TODO: create examples...
 */
 #[allow(non_snake_case)]
-pub fn F5(C: f64, C2: f64) -> f64 {
+pub fn F5(ctx: Context, C: f64, C2: f64) -> f64 {
+    let cpp_er_ee_ttl_cont_rate = ctx.tax_consts.CPP.TtlCPP_CRA.EE_ER_TtlContRate;
+    let cpp_ee_er_add_cont_rate = ctx.tax_consts.CPP.CPPFAddtnlRate.EE_ER_FAddtnlContRate;
     if C == 0.0 && C2 == 0.0 {
         return 0.0;
     }
-    utils::round(C * (0.100 / 0.0595) + C2)
+    utils::round(C * (cpp_ee_er_add_cont_rate / cpp_er_ee_ttl_cont_rate) + C2)
 }
 
-/** Deductions for Canada (or Quebec) Pension Plan additional contributions for the pay period deducted from the periodic income
+/** ## Deductions for Canada (or Quebec) Pension Plan additional contributions for the pay period deducted from the periodic income
 *
 *
-* Given:
+* ### Arguements:
 *
 *  F5: Deductions for Canada Pension Plan additional contributions for the pay period
 *
@@ -54,6 +61,9 @@ pub fn F5(C: f64, C2: f64) -> f64 {
 *   PI: Pensionable earnings for the pay period, or the gross income plus any taxable benefits for the pay period, including bonuses and retroactive pay increases where applicable
 *
 *   B: Gross bonus, retroactive pay increase, vacation pay when vacation is not taken, accumulated overtime payment or other non-periodic payment
+*
+* ### Examples:
+*   //TODO: create examples...
 */
 #[allow(non_snake_case)]
 pub fn F5A(F5: f64, PI: f64, B: f64) -> f64 {
@@ -64,173 +74,199 @@ pub fn F5A(F5: f64, PI: f64, B: f64) -> f64 {
 *
 * ### Arguements:
 *
+* ctx: Context
+*
 *   [F5](./fn.F5.html): Deductions for Canada Pension Plan additional contributions for the pay period
 *
 *   Use F5Q inplace of F5 for Quebec: Deductions for Quebec Pension Plan additional contributions for the pay period
 *
 *   PI: Pensionable earnings for the pay period, or the gross income plus any taxable benefits for the pay period, including bonuses and retroactive pay increases where applicable
 *
-*   B: Gross bonus, retroactive pay increase, vacation pay when vacation is not taken, accumulated overtime payment or other non-periodic payment
-*
 * ### Examples:
 *   //TODO: create examples...
 */
 #[allow(non_snake_case)]
-pub fn F5B(F5: f64, PI: f64, B: f64) -> f64 {
-    utils::round(F5 * (B / PI))
+pub fn F5B(ctx: Context, F5: f64, PI: f64) -> f64 {
+    utils::round(F5 * (ctx.payer_vars.B / PI))
 }
 
-/** Annual Basic Federal Tax
+/** ## Annual Basic Federal Tax
 *
 *   For cumulative T3 Calculations, use /[x/]_grad in the below list (if not listed, use the normal
 *   parameter).
 *
-*   R and K are based on 2025 index values for A see the Rates (R, V), income thresholds (A), and constants (K, KP) for each year
+* ### Arguments:
 *
-* Given:
+*   ctx: Context
 *
-*   R: Federal tax rate that applies to the annual taxable income A
+*   [A](../basic_personal_income/fn.A.html) or [A_grad](../basic_personal_income/fn.A_grad.html): Annual taxable income
 *
-*   A: Annual taxable income
+*   [K1](fn.K1.html): Federal non-refundable personal tax credit (the lowest federal tax rate is used to calculate this credit)
 *
-*   A_grad: Projected annual taxable income
+*   [K2](fn.K2.html) or [K2_grad](fn.K2_grad.html): Base Canada Pension Plan contributions and employment insurance premiums federal tax credits for the year (the lowest federal tax rate is used to calculate this credit).
 *
-*   K: Federal constant. The constant is the tax overcharged when applying the 20.5%, 26%, 29%, and 33% rates to the annual taxable income A
+*   Replace K2 with K2R where: employees that are transferred from Quebec to a location outside Quebec (currently unimplemented)
 *
-*   K1: Federal non-refundable personal tax credit (the lowest federal tax rate is used to calculate this credit)
+*   [K3](fn.K3.html): Other federal non-refundable tax credits (such as medical expenses and charitable donations) authorized by a tax services office or tax centre
 *
-*   K2: Base Canada Pension Plan contributions and employment insurance premiums federal tax credits for the year (the lowest federal tax rate is used to calculate this credit).
+*   [K4](fn.K4.html): Federal non-refundable tax credit calculated using the Canada employment amount (the lowest federal tax rate is used to calculate this credit)
 *
-*   K2_grad: see K2.
-*
-*   Replace K2 with K2R where: employees that are transferred from Quebec to a location outside Quebec
-*
-*   K3: Other federal non-refundable tax credits (such as medical expenses and charitable donations) authorized by a tax services office or tax centre
-*
-*   K4: Federal non-refundable tax credit calculated using the Canada employment amount (the lowest federal tax rate is used to calculate this credit)
+* ### Examples:
+* TODO: Add examples...
 */
 #[allow(non_snake_case)]
-pub fn T3(R: f64, A: f64, K: f64, K1: f64, K2: f64, K3: f64, K4: f64) -> f64 {
-    let result: f64 = (R * A) - K - K1 - K2 - K3 - K4;
+pub fn T3(ctx: Context, A: f64, K1: f64, K2: f64, K3: f64, K4: f64) -> Result<f64, anyhow::Error> {
+    let federal_threshold = ctx.tax_consts.fed.RITC.get_income_threshold(A)?;
+    let result: f64 = (federal_threshold.R * A) - federal_threshold.K - K1 - K2 - K3 - K4;
     if result.is_sign_negative() {
-        return 0.0;
+        return Ok(0.0);
     }
-    utils::round(result)
+    Ok(utils::round(result))
 }
 
-/** Federal non-refundable personal tax credit (the lowest federal tax rate is used to calculate this credit)
+/** ## Federal non-refundable personal tax credit (the lowest federal tax rate is used to calculate this credit)
 *
 *
-* Given:
+* ### Arguments:
 *
-*   TC: “Total claim amount,” reported on federal Form TD1.
+*   ctx: Context
+*
+* ### Examples:
+* TODO: Add examples...
 */
 #[allow(non_snake_case)]
-pub fn K1(TC: f64) -> f64 {
-    0.15 * TC
+pub fn K1(ctx: Context) -> f64 {
+    utils::round(ctx.tax_consts.fed.RITC.R[0] * ctx.payer_vars.TC)
 }
 
-/** Base Canada Pension Plan contributions and employment insurance premiums federal tax credits for the year
+/** ## Base Canada Pension Plan contributions and employment insurance premiums federal tax credits for the year
 *
 *
-* Given:
+* ### Arguments:
 *
-*   P: The number of pay periods in the year
+*   ctx: Context
 *
-*   PM: The total number of months during which CPP and/or QPP contributions are required to be deducted
+*   [C](../other_deductions/fn.C.html): Canada (or Quebec) Pension Plan contributions for the pay period
 *
-*   C: Canada (or Quebec) Pension Plan contributions for the pay period
+*   [EI](../other_deductions/fn.EI.html): Insurable earnings for the pay period, including insurable taxable benefits for the pay period
 *
-*   EI: Employment insurance premiums for the pay period
+* ### Examples:
+* TODO: Add examples...
 */
 #[allow(non_snake_case)]
-pub fn K2(P: i64, PM: i64, C: f64, mut EI: f64) -> f64 {
-    if EI > context::EI_MAX_CONTRIBUTIONS {
-        EI = context::EI_MAX_CONTRIBUTIONS;
+pub fn K2(ctx: Context, C: f64, mut EI: f64) -> f64 {
+    let cpp_max_contributions = ctx.tax_consts.CPP.BaseCPPRate.MaxEE_ER_TtlCont;
+
+    let cpp_er_ee_ttl_cont_rate = ctx.tax_consts.CPP.TtlCPP_CRA.EE_ER_TtlContRate;
+    let cpp_er_ee_base_cont_rate = ctx.tax_consts.CPP.BaseCPPRate.EE_ER_BaseContRate;
+    let cpp_remainder_rate = cpp_er_ee_base_cont_rate / cpp_er_ee_ttl_cont_rate;
+
+    let ei_max_prem = ctx.tax_consts.EI.MaxAEEP;
+
+    if EI > ei_max_prem {
+        EI = ei_max_prem;
     }
 
-    let mut result = 0.15 * (P as f64 * C * (0.0495 / 0.0595));
+    let mut result =
+        ctx.tax_consts.fed.RITC.R[0] * (ctx.payer_vars.P as f64 * C * cpp_remainder_rate);
     //TODO: check if the `result` is anywhere near CPP_MAX_CONTRIBUTIONS; not sure if I've writen
     //this correctly
-    if result > context::CPP_MAX_CONTRIBUTIONS {
-        result = context::CPP_MAX_CONTRIBUTIONS;
+    if result > cpp_max_contributions {
+        result = cpp_max_contributions;
     }
 
-    result = (result * (PM / 12) as f64) + (0.15 * (P as f64 * EI));
+    result = (result * (ctx.payer_vars.PM / 12) as f64)
+        + (ctx.tax_consts.fed.RITC.R[0] * (ctx.payer_vars.P as f64 * EI));
 
     utils::round(result)
 }
 
-/** Base Canada Pension Plan contributions and employment insurance premiums federal tax credits for the year
+/** ## Base Canada Pension Plan contributions and employment insurance premiums federal tax credits for the year
 *
 *   Using Cumulative Average Calculation
 *
-* Given:
+* ### Arguements:
 *
-*   S1: Annualizing factor
+*   [S1](../basic_personal_income/fn.S1.html): Annualizing factor
 *
-*   PE: Pensionable earnings for the pay period, or the gross income plus any taxable benefits for the pay period, plus PEYTD
+*   PI: Pensionable earnings for the pay period, or the gross income plus any taxable benefits for the pay period
 *
-*   B1: Gross bonuses, retroactive pay increases, vacation pay when vacation is not taken, accumulated overtime payments or other non-periodic payments year-to-date (before the pay period)
+*   [C](../other_deductions/fn.C.html): Canada (or Quebec) Pension Plan contributions for the pay period
 *
-*   C: Canada (or Quebec) Pension Plan contributions for the pay period
+*   [EI](../other_deductions/fn.EI.html): Insurable earnings for the pay period, including insurable taxable benefits for the pay period
 *
-*   EI: Insurable earnings for the pay period, including insurable taxable benefits for the pay period, plus IEYTD
+* ### Examples:
+* TODO: Add examples...
 */
 #[allow(non_snake_case)]
-pub fn K2_grad(S1: f64, PE: i64, B1: f64, EI: f64) -> f64 {
+pub fn K2_grad(ctx: Context, S1: f64, PI: f64, EI: f64) -> f64 {
     let mut cpp: f64;
 
-    cpp = (S1 * PE as f64) + B1 - 3500.0;
+    let cpp_max_contributions = ctx.tax_consts.CPP.BaseCPPRate.MaxEE_ER_TtlCont;
+    let cpp_er_ee_base_cont_rate = ctx.tax_consts.CPP.BaseCPPRate.EE_ER_BaseContRate;
+    let cpp_basic_excemption = ctx.tax_consts.CPP.TtlCPP_CRA.BasicException;
+
+    cpp = (S1 * (PI + ctx.payer_vars.PIytd)) + ctx.payer_vars.B1 - cpp_basic_excemption;
     if cpp.is_sign_negative() {
         cpp = 0.0;
     }
 
-    if cpp > context::CPP_MAX_CONTRIBUTIONS {
-        cpp = context::CPP_MAX_CONTRIBUTIONS;
+    if cpp > cpp_max_contributions {
+        cpp = cpp_max_contributions;
     }
 
     let mut result: f64;
 
-    result = 0.15 * 0.0495 * cpp;
+    result = ctx.tax_consts.fed.RITC.R[0] * cpp_er_ee_base_cont_rate * cpp;
 
     let mut ei: f64;
 
-    ei = (S1 * EI) + B1;
+    ei = (S1 * (EI + ctx.payer_vars.EIytd)) + ctx.payer_vars.B1;
 
-    if ei > context::EI_MAX_CONTRIBUTIONS {
-        ei = context::EI_MAX_CONTRIBUTIONS;
+    let ei_max_prem = ctx.tax_consts.EI.MaxAEEP;
+    let ei_ee_cont_rate = ctx.tax_consts.EI.EE_CR;
+
+    if ei > ei_max_prem {
+        ei = ei_max_prem;
     }
 
-    result += 0.15 * 0.0164 * ei;
+    result += ctx.tax_consts.fed.RITC.R[0] * ei_ee_cont_rate * ei;
 
     utils::round(result)
 }
 
-/** Base Canada Pension Plan contributions and employment insurance premiums federal tax credits for the year
+/** ## Base Canada Pension Plan contributions and employment insurance premiums federal tax credits for the year
 *
 *   Calculated using the year-to-date method
 *
 *
-* Given:
+* ### Arguements:
 *
-*   PM: The total number of months during which CPP and/or QPP contributions are required to be deducted
+*   ctx: Context
 *
-*   PR: The number of pay periods left in the year (including the current pay period)
+*   [C](../other_deductions/fn.C.html): Canada (or Quebec) Pension Plan contributions for the pay period
 *
-*   C: Canada (or Quebec) Pension Plan contributions for the pay period
+*   [EI](../other_deductions/fn.EI.html): Employment insurance premiums for the pay period
 *
-*   D: Employee’s year-to-date (before the pay period) Canada Pension Plan contribution with the employer
-*
-*   D1: Employee’s year-to-date (before the pay period) employment insurance premium with the employer
-*
-*   EI: Employment insurance premiums for the pay period
+* ### Examples:
+* TODO: Add examples...
 */
 #[allow(non_snake_case)]
-pub fn K2_YTD(PM: i64, PR: i64, C: f64, D: f64, D1: f64, EI: f64) -> f64 {
-    let mut result: f64 = 0.15;
-    let cpp_ftc1: f64 = context::CPP_MAX_CONTRIBUTIONS * (PM / 12) as f64;
-    let cpp_ftc2: f64 = (D * (0.0495 / 0.0595)) + (PR as f64 * C * (0.0495 / 0.0595));
+pub fn K2_YTD(ctx: Context, C: f64, EI: f64) -> f64 {
+    let pm = ctx.payer_vars.PM;
+    let pr = ctx.payer_vars.PR;
+    let d = ctx.payer_vars.D;
+    let d1 = ctx.payer_vars.D1;
+
+    let cpp_max_contributions = ctx.tax_consts.CPP.BaseCPPRate.MaxEE_ER_TtlCont;
+
+    let cpp_er_ee_ttl_cont_rate = ctx.tax_consts.CPP.TtlCPP_CRA.EE_ER_TtlContRate;
+    let cpp_er_ee_base_cont_rate = ctx.tax_consts.CPP.BaseCPPRate.EE_ER_BaseContRate;
+    let cpp_remainder_rate = cpp_er_ee_base_cont_rate / cpp_er_ee_ttl_cont_rate;
+
+    let mut result: f64 = ctx.tax_consts.fed.RITC.R[0];
+    let cpp_ftc1: f64 = cpp_max_contributions * (pm / 12) as f64;
+    let cpp_ftc2: f64 = (d * cpp_remainder_rate) + (pr as f64 * C * cpp_remainder_rate);
     if cpp_ftc1 > cpp_ftc2 {
         result *= cpp_ftc2
     } else {
@@ -238,124 +274,176 @@ pub fn K2_YTD(PM: i64, PR: i64, C: f64, D: f64, D1: f64, EI: f64) -> f64 {
     }
 
     let ei_ftc: f64;
-    let y: f64 = D1 + (PR as f64 * EI);
-    if y > context::EI_MAX_CONTRIBUTIONS {
-        ei_ftc = context::EI_MAX_CONTRIBUTIONS;
+    let ei_max_prem = ctx.tax_consts.EI.MaxAEEP;
+    let y: f64 = d1 + (pr as f64 * EI);
+    if y > ei_max_prem {
+        ei_ftc = ei_max_prem;
     } else {
         ei_ftc = y;
     }
 
-    result += 0.15 * ei_ftc;
+    result += ctx.tax_consts.fed.RITC.R[0] * ei_ftc;
     utils::round(result)
 }
 
-/** Other federal non-refundable tax credits
+/** ## Other federal non-refundable tax credits
 *
 *
-* Given:
+* ### Arguments:
 *
-*   P: The number of pay periods in the year
+*   ctx: Context
 *
-*   PR: The number of pay periods left in the year (including the current pay period)
-*
-*   K3: Other federal non-refundable tax credits
+* ### Examples:
+* TODO: Add examples...
 */
 #[allow(non_snake_case)]
-pub fn K3(P: i64, PR: i64, K3: f64) -> f64 {
-    (P as f64 * K3) / PR as f64
-}
-
-/** Federal non-refundable tax credit calculated using the Canada employment amount (the lowest federal tax rate is used to calculate this credit)
-*
-*
-* Given:
-*
-*   A: Annual taxable income
-*
-*   CEA: Canada Employment Amount, a non-refundable tax credit used in the calculation for K4 and K4P
-*/
-#[allow(non_snake_case)]
-pub fn K4(A: f64, CEA: f64) -> f64 {
-    let k41: f64 = 0.15 * A;
-    let k42: f64 = 0.15 * CEA;
-    if k41 > k42 {
-        return utils::round(k42);
-    } else {
-        return utils::round(k41);
+pub fn K3(ctx: Context) -> f64 {
+    let p = ctx.payer_vars.P;
+    let k3p = ctx.payer_vars.K3P;
+    let pr = ctx.payer_vars.PR;
+    match k3p {
+        Some(k3p) => (p as f64 * k3p) / pr as f64,
+        None => 0.0,
     }
 }
 
-/** Annual federal tax deduction
+/** ## Federal non-refundable tax credit calculated using the Canada employment amount (the lowest federal tax rate is used to calculate this credit)
 *
 *
-* Given:
+* ### Arguements:
 *
-*   T3: Annual basic federal tax
+*   [A](.basic_personal_income/fn.A.html) or [A-Grad](.basic_personal_income/fn.A_grad.html): Annual taxable income
 *
-*   P: The number of pay periods in the year
-*
-*   LCF: Federal labour-sponsored funds tax credit
-*
-*   is_outside_city_limits: outside Canada and in Canada beyond the limits of any province or territory
+* ### Examples:
+* TODO: Add examples...
 */
 #[allow(non_snake_case)]
-pub fn T1(T3: f64, P: i64, LCF: f64, is_outside_city_limits: bool) -> f64 {
+pub fn K4(ctx: Context, A: f64) -> Result<f64, anyhow::Error> {
+    let cea = ctx
+        .tax_consts
+        .fed
+        .ORA
+        .Federal
+        .CEA
+        .ok_or_else(|| anyhow::anyhow!("Unable to find Federal CEA."))?;
+    let k41: f64 = 0.15 * A;
+    let k42: f64 = 0.15 * cea;
+    if k41 > k42 {
+        return Ok(utils::round(k42));
+    } else {
+        return Ok(utils::round(k41));
+    }
+}
+
+/** ## Annual federal tax deduction
+*
+*
+* ### Arguments:
+*
+*   ctx: Context
+*
+*   [T3](.fn.T3.html): Annual basic federal tax
+*
+*   [LCF](.fn.LCF.html): Federal labour-sponsored funds tax credit
+*
+* ### Examples:
+* TODO: Add examples...
+*/
+#[allow(non_snake_case)]
+pub fn T1(ctx: Context, T3: f64, LCF: f64) -> Result<f64, anyhow::Error> {
     let t1: f64;
 
-    if is_outside_city_limits {
-        t1 = T3 + (0.48 * T3) - (P as f64 * LCF);
+    let P = ctx.payer_vars.P;
+    let surtax = ctx
+        .tax_consts
+        .fed
+        .ORA
+        .notCA
+        .Surtax
+        .ok_or_else(|| anyhow::anyhow!("Unable to find Federal Surtax."))?;
+
+    if ctx.payer_vars.lives_outside_city_limits {
+        t1 = T3 + (surtax * T3) - (P as f64 * LCF);
     } else {
         t1 = T3 - (P as f64 * LCF);
     }
 
     if t1.is_sign_negative() {
-        return 0.0;
+        return Ok(0.0);
     }
-    utils::round(t1)
+    Ok(utils::round(t1))
 }
 
-/** Annual federal tax deduction
+/** ## Annual federal tax deduction
 *
 *   Uses Cumulative Average calculation
 *
+* ### Arguments:
 *
-* Given:
+*   ctx: Context
 *
-*   T3: Annual basic federal tax
+*   [T3](.fn.T3.html): Annual basic federal tax
 *
-*   LCF: Federal labour-sponsored funds tax credit
+*   [LCF](.fn.LCF.html): Federal labour-sponsored funds tax credit
 *
-*   is_outside_city_limits: outside Canada and in Canada beyond the limits of any province or territory
+* ### Examples:
+* TODO: Add examples...
 */
 #[allow(non_snake_case)]
-pub fn T1_grad(T3: f64, LCF: f64, is_outside_city_limits: bool) -> f64 {
+pub fn T1_grad(ctx: Context, T3: f64, LCF: f64) -> Result<f64, anyhow::Error> {
     let t1: f64;
+    let surtax = ctx
+        .tax_consts
+        .fed
+        .ORA
+        .notCA
+        .Surtax
+        .ok_or_else(|| anyhow::anyhow!("Unable to find Federal Surtax."))?;
 
-    if is_outside_city_limits {
-        t1 = T3 + (0.48 * T3) - LCF;
+    if ctx.payer_vars.lives_outside_city_limits {
+        t1 = T3 + (surtax * T3) - LCF;
     } else {
         t1 = T3 - LCF;
     }
 
     if t1.is_sign_negative() {
-        return 0.0;
+        return Ok(0.0);
     }
-    utils::round(t1)
+    Ok(utils::round(t1))
 }
 
-/** Federal labour-sponsored funds tax credit
+/** ## Federal labour-sponsored funds tax credit
 *
 *
-* Given:
+* ### Arguments:
+*
+*   ctx: Context
 *
 *   acquisition_pay_loss: Fifteen percent of the amount deducted or withheld for the pay period for the acquisition, by the employee, of approved shares of the capital stock of a prescribed labour-sponsored venture capital corporation
+*
+* ### Examples:
+* TODO: Add examples...
 */
 #[allow(non_snake_case)]
-pub fn LCF(acquisition_pay_loss: f64) -> f64 {
-    let lcf: f64 = 0.15 * acquisition_pay_loss;
-    if 750.0 > lcf {
-        return utils::round(acquisition_pay_loss);
+pub fn LCF(ctx: Context, acquisition_pay_loss: f64) -> Result<f64, anyhow::Error> {
+    let fed_lcp_rate = ctx
+        .tax_consts
+        .fed
+        .ORA
+        .Federal
+        .LCPRate
+        .ok_or_else(|| anyhow::anyhow!("Unable to find Federal LCP Rate."))?;
+    let fed_lcp_amt = ctx
+        .tax_consts
+        .fed
+        .ORA
+        .Federal
+        .LCPAmt
+        .ok_or_else(|| anyhow::anyhow!("Unable to find Federal LCP Amount."))?;
+    let lcf: f64 = fed_lcp_rate * acquisition_pay_loss;
+    if fed_lcp_amt > lcf {
+        return Ok(utils::round(acquisition_pay_loss));
     } else {
-        return 750.0;
+        return Ok(fed_lcp_amt);
     }
 }

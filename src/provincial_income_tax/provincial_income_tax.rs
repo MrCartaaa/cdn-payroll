@@ -129,7 +129,7 @@ pub fn K1P(ctx: &Context) -> f64 {
 *   EI: Employment insurance premiums for the pay period
 *
 *   ### Examples:
-*       // TODO: Add examples.
+*   // TODO: Add examples.
 */
 #[allow(non_snake_case)]
 pub fn K2P(ctx: &Context, C: f64, EI: f64) -> f64 {
@@ -173,7 +173,7 @@ pub fn K2P(ctx: &Context, C: f64, EI: f64) -> f64 {
 *   EI: Employment insurance premiums for the pay period
 *
 *   ### Examples:
-*       // TODO: Add examples.
+*  // TODO: Add examples.
 */
 #[allow(non_snake_case)]
 pub fn K2P_grad(ctx: &Context, PE: f64, S1: f64, EI: f64) -> f64 {

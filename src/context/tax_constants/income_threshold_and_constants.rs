@@ -165,7 +165,7 @@ impl ProvRITC {
 *
 *   A: Annual taxable income Bracket
 *
-*  V: Federal tax rate for the year
+*   R: Federal tax rate for the year
 *
 *   K: Federal Constant
 */
@@ -173,17 +173,48 @@ impl ProvRITC {
 #[allow(non_snake_case)]
 pub struct FedRITC {
     pub A: Vec<f64>,
-    pub V: Vec<f64>,
+    pub R: Vec<f64>,
     pub K: Vec<f64>,
+}
+
+#[derive(Debug)]
+#[allow(non_snake_case)]
+pub struct FederalThreshold {
+    pub A: f64,
+    pub R: f64,
+    pub K: f64,
 }
 
 impl FedRITC {
     fn from_prov_ritc(prov_ritc: ProvRITC) -> Self {
         Self {
             A: prov_ritc.A,
-            V: prov_ritc.V,
+            R: prov_ritc.V,
             K: prov_ritc.KP,
         }
+    }
+
+    #[allow(non_snake_case)]
+    pub fn get_income_threshold(&self, A: f64) -> Result<FederalThreshold, anyhow::Error> {
+        let max_threshold = self.A.len();
+        for (i, a) in self.A.iter().enumerate() {
+            if (i + 1) > max_threshold {
+                let n = self.A[i + 1];
+                if A > n && A < *a {
+                    return Ok(FederalThreshold {
+                        A: a.to_owned(),
+                        R: self.R[i],
+                        K: self.K[i],
+                    });
+                }
+            }
+            return Ok(FederalThreshold {
+                A: a.to_owned(),
+                R: self.R[i],
+                K: self.K[i],
+            });
+        }
+        Err(anyhow::anyhow!("unable to find federal income threshold."))
     }
 }
 

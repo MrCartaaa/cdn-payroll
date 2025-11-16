@@ -16,8 +16,10 @@ use crate::utils;
 */
 #[allow(non_snake_case)]
 pub fn C(ctx: Context, PI: f64) -> f64 {
-    let c1: f64 = ctx.tax_consts.CPP.TtlCPP_CRA.MaxEE_ER_TtlCont * (ctx.payer_vars.PM / 12) as f64 - ctx.payer_vars.D;
-    let c2: f64 = ctx.tax_consts.CPP.TtlCPP_CRA.EE_ER_TtlContRate * (PI - (ctx.tax_consts.CPP.TtlCPP_CRA.BasicException / ctx.payer_vars.P as f64));
+    let c1: f64 = ctx.tax_consts.CPP.TtlCPP_CRA.MaxEE_ER_TtlCont * (ctx.payer_vars.PM / 12) as f64
+        - ctx.payer_vars.D;
+    let c2: f64 = ctx.tax_consts.CPP.TtlCPP_CRA.EE_ER_TtlContRate
+        * (PI - (ctx.tax_consts.CPP.TtlCPP_CRA.BasicException / ctx.payer_vars.P as f64));
     if c1 < c2 {
         return utils::round(c2);
     } else {
@@ -40,8 +42,11 @@ pub fn C(ctx: Context, PI: f64) -> f64 {
 */
 #[allow(non_snake_case)]
 pub fn C2(ctx: Context, PI: f64, W: f64) -> f64 {
-    let c21: f64 = ctx.tax_consts.CPP.CPPSAddtnlRate.MaxEE_ER_SAddtnlCont * (ctx.payer_vars.PM / 12) as f64 - ctx.payer_vars.D2;
-    let c22: f64 = (ctx.payer_vars.PIytd + PI - W) * ctx.tax_consts.CPP.CPPSAddtnlRate.EE_ER_SAddtnlContRate;
+    let c21: f64 = ctx.tax_consts.CPP.CPPSAddtnlRate.MaxEE_ER_SAddtnlCont
+        * (ctx.payer_vars.PM / 12) as f64
+        - ctx.payer_vars.D2;
+    let c22: f64 =
+        (ctx.payer_vars.PIytd + PI - W) * ctx.tax_consts.CPP.CPPSAddtnlRate.EE_ER_SAddtnlContRate;
     let mut c2: f64;
     if c21 < c22 {
         c2 = c21;
@@ -89,7 +94,7 @@ pub fn W(ctx: Context) -> f64 {
 *   IE: Insurable earnings for the pay period, including insurable taxable benefits, bonuses, and retroactive pay increases
 *
 * ### Examples:
-*   // TODO: Create examples
+*   //TODO: Create examples
 */
 #[allow(non_snake_case)]
 pub fn EI(ctx: Context, IE: f64) -> f64 {

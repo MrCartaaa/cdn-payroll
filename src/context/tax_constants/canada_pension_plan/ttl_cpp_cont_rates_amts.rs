@@ -6,8 +6,6 @@ use serde::{de, Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 use std::error::Error as StdError;
 
-
-
 /** Total Canada Pension Plan Contribution Rate Amounts
 *
 * Where:
@@ -56,6 +54,7 @@ pub struct TtlCPP_CRA {
     pub YMPE_raw: f64,
 }
 
+//TODO: These functions are duplicated all accross the context -> refactor to util
 fn quoted_f64<'de, D: Deserializer<'de>>(deserializer: D) -> Result<f64, D::Error> {
     Ok(match Deserialize::deserialize(deserializer)? {
         Value::String(s) => {
@@ -81,10 +80,7 @@ fn quoted_f64<'de, D: Deserializer<'de>>(deserializer: D) -> Result<f64, D::Erro
 impl TtlCPP_CRA {
     /** Initialize Total Canada Pension Plan / Quebec Pension Plan Contribution Rates and Amounts.
      */
-    pub fn init(
-        version: &Version,
-        prov: &ProvinceKey,
-) -> Result<Self, Box<dyn StdError>> {
+    pub fn init(version: &Version, prov: &ProvinceKey) -> Result<Self, Box<dyn StdError>> {
         let file_name = match version {
             Version::V2025_1 => "cra-constants/v2025_1/cpp-qpp-ttl-01-25e.csv",
         };
@@ -105,8 +101,28 @@ impl TtlCPP_CRA {
 
         Ok(match &prov {
             // TODO: I dont like how this is written
-            ProvinceKey::QC => records.get(records.iter().position(|rec| rec.pp == "QPP (QC)").ok_or_else(|| "Datafile Corrupt. unable to find QC Total CPP Contributions details.")?).unwrap().clone(),
-            _ => records.get(records.iter().position(|rec| rec.pp == "CPP (Canada except QC)").ok_or_else(|| "Datafile Corrupt. unable to find Canada CPP Contribution details.")?).unwrap().clone(),
+            ProvinceKey::QC => records
+                .get(
+                    records
+                        .iter()
+                        .position(|rec| rec.pp == "QPP (QC)")
+                        .ok_or_else(|| {
+                            "Datafile Corrupt. unable to find QC Total CPP Contributions details."
+                        })?,
+                )
+                .unwrap()
+                .clone(),
+            _ => records
+                .get(
+                    records
+                        .iter()
+                        .position(|rec| rec.pp == "CPP (Canada except QC)")
+                        .ok_or_else(|| {
+                            "Datafile Corrupt. unable to find Canada CPP Contribution details."
+                        })?,
+                )
+                .unwrap()
+                .clone(),
         })
     }
 }

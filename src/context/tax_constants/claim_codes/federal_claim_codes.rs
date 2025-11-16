@@ -22,18 +22,21 @@ use std::error::Error as StdError;
 #[allow(non_snake_case)]
 pub struct FederalClaimCode {
     #[serde(
-        deserialize_with = "quoted_f64",
+        deserialize_with = "quoted_option_f64",
         rename = "Total claim amount ($) from"
     )]
-    TCAmtFloor: Option<f64>,
-    #[serde(deserialize_with = "quoted_f64", rename = "Total claim amount ($) to")]
-    TCAmtCeil: Option<f64>,
+    pub TCAmtFloor: Option<f64>,
+    #[serde(
+        deserialize_with = "quoted_option_f64",
+        rename = "Total claim amount ($) to"
+    )]
+    pub TCAmtCeil: Option<f64>,
     #[serde(deserialize_with = "quoted_f64", rename = "Option 1, TC ($)")]
-    TC: Option<f64>,
+    pub TC: f64,
     #[serde(deserialize_with = "quoted_f64", rename = "Option 1, K1 ($)")]
-    K1: Option<f64>,
+    pub K1: f64,
 }
-fn quoted_f64<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Option<f64>, D::Error> {
+fn quoted_option_f64<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Option<f64>, D::Error> {
     Ok(match Deserialize::deserialize(deserializer)? {
         Value::String(s) => {
             let v = s.trim().replace(",", "");
@@ -48,6 +51,28 @@ fn quoted_f64<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Option<f64>,
             }
         }
         Value::Number(n) => n.as_f64(),
+        _ => return Err(de::Error::custom("Wrong type, expected quoted f64.")),
+    })
+}
+fn quoted_f64<'de, D: Deserializer<'de>>(deserializer: D) -> Result<f64, D::Error> {
+    Ok(match Deserialize::deserialize(deserializer)? {
+        Value::String(s) => {
+            let v = s.trim().replace(",", "");
+            if v.is_empty() {
+                return Err(de::Error::custom(format!("no string to parse: {}", s)));
+            }
+            let val = v.parse::<f64>();
+            if val.is_ok() {
+                return Ok(val.unwrap());
+            } else {
+                return Err(de::Error::custom(format!(
+                    "{}, Val: {:?}",
+                    val.unwrap_err(),
+                    v
+                )));
+            }
+        }
+        Value::Number(num) => num.as_f64().ok_or(de::Error::custom("Invalid number"))?,
         _ => return Err(de::Error::custom("Wrong type, expected quoted f64.")),
     })
 }
@@ -95,8 +120,8 @@ mod tests {
             &FederalClaimCode {
                 TCAmtFloor: None,
                 TCAmtCeil: None,
-                TC: Some(0.0),
-                K1: Some(0.0)
+                TC: 0.0,
+                K1: 0.0
             }
         );
         assert_eq!(
@@ -104,8 +129,8 @@ mod tests {
             &FederalClaimCode {
                 TCAmtFloor: Some(24463.01),
                 TCAmtCeil: Some(27241.0),
-                TC: Some(25852.0),
-                K1: Some(3877.8)
+                TC: 25852.0,
+                K1: 3877.8
             }
         );
         assert_eq!(
@@ -113,8 +138,8 @@ mod tests {
             &FederalClaimCode {
                 TCAmtFloor: Some(35575.01),
                 TCAmtCeil: Some(38353.0),
-                TC: Some(36964.0),
-                K1: Some(5544.6)
+                TC: 36964.0,
+                K1: 5544.6
             }
         );
     }

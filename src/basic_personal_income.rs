@@ -55,6 +55,9 @@ pub fn BPAF(ctx: Context, A: &f64) -> f64 {
 *
 *   T - [[T](../income_tax/fn.T.html) or [T_grad](../income_tax/fn.T_grad.html)] : Estimated federal and provincial or territorial tax deductions for the pay period
 *
+* ### Examples:
+* TODO: Add examples...
+*
 */
 #[allow(non_snake_case)]
 pub fn A(ctx: Context, F5A: f64, mut T: f64) -> (f64, f64) {
@@ -104,6 +107,8 @@ pub fn A(ctx: Context, F5A: f64, mut T: f64) -> (f64, f64) {
 *
 *  [F5B](../federal_income_tax/fn.F5B.html): Deductions for Canada (or Quebec) Pension Plan additional contributions for the pay period deducted from the non-periodic income plus F5BYTD.
 *
+* ### Examples:
+* TODO: Add examples...
 */
 #[allow(non_snake_case)]
 pub fn A_grad(ctx: &Context, S1: f64, F5A: f64, F5B: f64) -> f64 {
@@ -145,6 +150,9 @@ pub fn A_grad(ctx: &Context, S1: f64, F5A: f64, F5B: f64) -> f64 {
 * ### Arguements:
 *
 *   ctx: Context
+*
+* ### Examples:
+* TODO: Add examples...
 */
 #[allow(non_snake_case)]
 pub fn S1(ctx: &Context) -> f64 {

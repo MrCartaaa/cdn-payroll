@@ -1,5 +1,6 @@
 //! Other Rates and Amounts as defined by the CRA
 
+use crate::context::TaxConstants;
 use encoding_rs::UTF_8;
 use std::collections::BTreeSet;
 use std::fs::File;
@@ -237,18 +238,21 @@ pub struct ORA {
 }
 
 impl ORA {
-
-    pub fn get_basic_amount_value(&self) -> Result<f64, Box<dyn StdError>> {
+    pub fn get_basic_amount_value(
+        &self,
+        tax_consts: &TaxConstants,
+    ) -> Result<f64, Box<dyn StdError>> {
         let bamt = &self.BasicAmt;
 
         Ok(match bamt {
             None => 0.0,
-            Some(basic_amt) => {
-                match basic_amt {
-                    BasicAmount::BasicAmt(x) => x.to_owned(),
-                    _ => return Err("Basic Amount value for the province is not yet implemented".into())
+            Some(basic_amt) => match basic_amt {
+                BasicAmount::BasicAmt(x) => x.to_owned(),
+                BasicAmount::Federal => tax_consts.fed.CC[1].TC,
+                _ => {
+                    return Err("Basic Amount value for the province is not yet implemented".into())
                 }
-            }
+            },
         })
     }
 }
